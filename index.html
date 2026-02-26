@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Mujineko-Viewer Tool</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/openseadragon.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -15,9 +15,11 @@
 :root {
   --control-bg: #f8f9fa; --border-color: #ddd; --viewer-bg: #1a1a1a; --accent-color: #0056b3;
 }
-body {
-  margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
-  font-family: "Helvetica Neue", Arial, sans-serif; color: #333; touch-action: none;
+html, body {
+  margin: 0; padding: 0; height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden;
+  font-family: "Helvetica Neue", Arial, sans-serif; color: #333; 
+  touch-action: none; /* 全体のタッチアクションを制限 */
+  overscroll-behavior: none; /* スクロール時のバウンス（引っ張り更新）を防止 */
 }
 button { cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 4px; padding: 4px 8px; font-size: 12px; transition: 0.2s; touch-action: manipulation; }
 button:hover { background: #e9ecef; }
@@ -94,7 +96,7 @@ button.active-tool { background: #ffeeba; border-color: #ffc107; box-shadow: 0 0
 
 .dl-mobile-btn { display: none; }
 
-/* 保存メニュー（スマホ用） ※トップバーの外に出して絶対配置 */
+/* 保存メニュー（スマホ用） */
 #mobileDlMenu {
   display: none; position: fixed; background: #fff; 
   border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
@@ -217,6 +219,28 @@ button.active-tool { background: #ffeeba; border-color: #ffc107; box-shadow: 0 0
 </div>
 
 <script>
+// ==========================================
+// スマホ特有の「ブラウザ全体のズーム」を完全に防止する処理
+// ==========================================
+// iOS Safariのピンチズーム防止
+document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
+document.addEventListener('gestureend', function(e) { e.preventDefault(); });
+
+// UI部分でのダブルタップズーム防止
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function(e) {
+    const now = (new Date()).getTime();
+    if (now - lastTouchEnd <= 300) {
+        // ビューワやキャンバス"以外"のUIをダブルタップした時だけブラウザの拡大を止める
+        if (!e.target.closest('#viewer') && !e.target.closest('#drawCanvas')) {
+            e.preventDefault();
+        }
+    }
+    lastTouchEnd = now;
+}, { passive: false });
+// ==========================================
+
 let images = [], notesData = [], globalNote = "", currentPage = 0;
 let filterState = { contrast: false, invert: false };
 let allDrawings = {}; 
@@ -375,7 +399,6 @@ function handleResize(clientY) {
 function toggleNotes() { notesPanel.classList.toggle('open'); }
 function toggleGuide() { document.getElementById('readingGuide').classList.toggle('active'); }
 
-// スマホ用ダウンロードメニューの表示切り替え（画面上部のボタンから下へ開く）
 function toggleMobileDlMenu(e) {
     const menu = document.getElementById('mobileDlMenu');
     if (menu.style.display === 'flex') { 
@@ -383,10 +406,8 @@ function toggleMobileDlMenu(e) {
     } else { 
         const btnRect = document.getElementById('mobileDlToggle').getBoundingClientRect();
         menu.style.display = 'flex';
-        // メニューのY座標をボタンの「下」に設定
         menu.style.top = (btnRect.bottom + 5) + 'px';
         menu.style.bottom = 'auto';
-        // 画面幅からはみ出ないようにX座標を調整
         const leftPos = Math.min(btnRect.left, window.innerWidth - 170);
         menu.style.left = Math.max(10, leftPos) + 'px';
     }
