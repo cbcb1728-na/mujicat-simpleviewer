@@ -24,7 +24,7 @@ button:hover { background: #e9ecef; }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
 button.active-tool { background: #ffeeba; border-color: #ffc107; box-shadow: 0 0 4px rgba(255,193,7,0.5) inset; }
 
-/* 上部コントロールバー */
+/* コントロールバー（PCでは上、スマホでは下） */
 #topBar {
   padding: 4px 8px; background: var(--control-bg); border-bottom: 1px solid var(--border-color);
   display: flex; flex-wrap: nowrap; gap: 8px; align-items: center; justify-content: flex-start; 
@@ -93,25 +93,41 @@ button.active-tool { background: #ffeeba; border-color: #ffc107; box-shadow: 0 0
 .btn-draw { font-weight: bold; color: #d32f2f; border-color: #d32f2f; }
 
 .dl-mobile-btn { display: none; }
+
+/* 保存メニュー（スマホ用） ※トップバーの外に出して絶対配置 */
 #mobileDlMenu {
-  display: none; position: absolute; top: 38px; left: auto; background: #fff; 
-  border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 200; flex-direction: column;
+  display: none; position: fixed; background: #fff; 
+  border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 -4px 12px rgba(0,0,0,0.15); 
+  z-index: 200; flex-direction: column; width: 160px;
 }
 #mobileDlMenu button { width: 100%; text-align: left; border: none; border-bottom: 1px solid #eee; border-radius: 0; padding: 10px 15px; font-size: 14px; }
 
 /* スマホ・タブレット用 */
 @media (max-width: 768px) {
+  /* 操作バーを画面下部に移動 */
+  #topBar { order: 2; border-top: 1px solid var(--border-color); border-bottom: none; box-shadow: 0 -2px 4px rgba(0,0,0,0.05); }
+  #mainArea { order: 1; }
+
   #manifestUrl { width: 100px; }
   .right-controls { margin-left: 0; }
   .dl-pc-btn { display: none !important; }
   .dl-mobile-btn { display: inline-block !important; }
   .hide-text-mobile { display: none; }
-  #viewerControls { top: auto; bottom: 20px; left: 50%; transform: translateX(-50%); flex-direction: row; border-radius: 20px; padding: 6px 12px; gap: 8px; }
-  #viewerControls button { width: 36px; height: 36px; font-size: 14px; border-radius: 50%; }
-  #viewerControls .v-divider { height: 36px; width: 1px; margin: 0 4px; }
-  #notesPanel { top: auto; bottom: -65vh; right: 0; left: 0; width: 100%; height: 60vh; border-radius: 12px 12px 0 0; }
+  
+  /* 画像調整ボタンの小型化＆配置調整 */
+  #viewerControls { 
+    top: auto; bottom: 50px; left: 50%; transform: translateX(-50%); 
+    flex-direction: row; border-radius: 20px; padding: 4px 8px; gap: 4px; 
+  }
+  #viewerControls button { width: 28px; height: 28px; font-size: 11px; border-radius: 50%; }
+  #viewerControls .v-divider { height: 28px; width: 1px; margin: 0 2px; }
+  
+  /* お絵描きツールバーの配置調整 */
+  #drawControls { top: auto; bottom: 95px; } 
+
+  /* メモパネルが下部バーを覆うように調整 */
+  #notesPanel { top: auto; bottom: -65vh; right: 0; left: 0; width: 100%; height: 60vh; border-radius: 12px 12px 0 0; z-index: 150; }
   #notesPanel.open { bottom: 0; right: 0; }
-  #drawControls { top: auto; bottom: 70px; } 
 }
 </style>
 </head>
@@ -120,32 +136,27 @@ button.active-tool { background: #ffeeba; border-color: #ffc107; box-shadow: 0 0
 <div id="topBar">
   <div class="left-controls">
     <div class="control-group">
-      <input type="text" id="manifestUrl" placeholder="IIIF URL">
-      <button onclick="loadManifest()" class="btn-primary" title="IIIF読込">🌐</button>
-      <button onclick="document.getElementById('localImageLoader').click()" class="btn-local" title="ローカル画像読込">📁</button>
+      <button onclick="document.getElementById('localImageLoader').click()" class="btn-local" title="ローカル画像読込">📁 <span class="hide-text-mobile">ローカル</span></button>
       <input type="file" id="localImageLoader" multiple accept="image/*" style="display:none">
+      <input type="text" id="manifestUrl" placeholder="IIIF URL">
+      <button onclick="loadManifest()" class="btn-primary" title="IIIF読込">🌐 <span class="hide-text-mobile">読込</span></button>
     </div>
     <div class="control-group">
       <button onclick="nextPage()">◀</button>
       <select id="pageSelect" onchange="jumpPage(this.value)"></select>
       <button onclick="prevPage()">▶</button>
     </div>
+    <div class="control-group dl-group">
+      <button onclick="downloadFullImage()" class="btn-action dl-pc-btn">⬇️ 1頁</button>
+      <button onclick="downloadMultipleZip()" class="btn-action dl-pc-btn" id="btnMultiZip">🗂️ ZIP</button>
+      <button onclick="downloadMultiplePdf()" class="btn-action dl-pc-btn" id="btnMultiPdf">📄 PDF</button>
+      <button onclick="toggleMobileDlMenu(event)" class="btn-action dl-mobile-btn" id="mobileDlToggle">⬇️ 保存</button>
+    </div>
   </div>
   
   <div class="right-controls">
     <div class="control-group">
       <button onclick="toggleDrawMode()" id="btnDrawToggle" class="btn-draw">🖊️ <span class="hide-text-mobile">手書き</span></button>
-    </div>
-    <div class="control-group dl-group">
-      <button onclick="downloadFullImage()" class="btn-action dl-pc-btn">⬇️ 1頁</button>
-      <button onclick="downloadMultipleZip()" class="btn-action dl-pc-btn" id="btnMultiZip">🗂️ ZIP</button>
-      <button onclick="downloadMultiplePdf()" class="btn-action dl-pc-btn" id="btnMultiPdf">📄 PDF</button>
-      <button onclick="toggleMobileDlMenu(event)" class="btn-action dl-mobile-btn" id="mobileDlToggle">⬇️</button>
-      <div id="mobileDlMenu">
-        <button onclick="downloadFullImage(); toggleMobileDlMenu();">⬇️ 1枚保存 (JPG)</button>
-        <button onclick="downloadMultipleZip(); toggleMobileDlMenu();">🗂️ 複数枚 (ZIP)</button>
-        <button onclick="downloadMultiplePdf(); toggleMobileDlMenu();">📄 複数枚 (PDF)</button>
-      </div>
     </div>
     <div class="control-group" style="border-right: none;">
       <button onclick="toggleNotes()" class="btn-action" style="background:#fff3cd;">📝 <span class="hide-text-mobile">メモ</span></button>
@@ -203,6 +214,12 @@ button.active-tool { background: #ffeeba; border-color: #ffc107; box-shadow: 0 0
   </div>
 </div>
 
+<div id="mobileDlMenu">
+  <button onclick="downloadFullImage(); toggleMobileDlMenu();">⬇️ 1枚保存 (JPG)</button>
+  <button onclick="downloadMultipleZip(); toggleMobileDlMenu();">🗂️ 複数枚 (ZIP)</button>
+  <button onclick="downloadMultiplePdf(); toggleMobileDlMenu();">📄 複数枚 (PDF)</button>
+</div>
+
 <script>
 let images = [], notesData = [], globalNote = "", currentPage = 0;
 let filterState = { contrast: false, invert: false };
@@ -219,7 +236,7 @@ const viewer = OpenSeadragon({
   animationTime: 0.4, gestureSettingsMouse: { clickToZoom: true }, preserveViewport: true, visibilityRatio: 0.5
 });
 
-// === 手書き（お絵描き）機能のコア処理 ===
+// === 手書き機能 ===
 const drawCanvas = document.getElementById("drawCanvas");
 const ctx = drawCanvas.getContext("2d");
 let isDrawMode = false, isDrawing = false;
@@ -228,7 +245,6 @@ let currentStroke = null;
 
 function resizeCanvas() {
   if (drawCanvas.parentElement) {
-    // 修正: スマホ等の高解像度ディスプレイ（Retina）で線を綺麗にする処理を追加
     const dpr = window.devicePixelRatio || 1;
     drawCanvas.width = drawCanvas.parentElement.clientWidth * dpr;
     drawCanvas.height = drawCanvas.parentElement.clientHeight * dpr;
@@ -274,7 +290,6 @@ function clearDrawings() {
   }
 }
 
-// ★修正部分: ペン位置のズレを解消！余計な引き算をなくしました★
 function getOSDPoint(clientX, clientY) {
   const webPoint = new OpenSeadragon.Point(clientX, clientY);
   const viewportPoint = viewer.viewport.windowToViewportCoordinates(webPoint);
@@ -288,8 +303,7 @@ drawCanvas.addEventListener('pointercancel', endDrawing);
 
 function startDrawing(e) {
   if (!isDrawMode || !viewer.viewport) return;
-  isDrawing = true;
-  drawCanvas.setPointerCapture(e.pointerId); 
+  isDrawing = true; drawCanvas.setPointerCapture(e.pointerId); 
   const pt = getOSDPoint(e.clientX, e.clientY);
   currentStroke = { color: penColor, width: penWidth, isEraser: isEraser, points: [pt] };
   e.preventDefault();
@@ -298,29 +312,23 @@ function moveDrawing(e) {
   if (!isDrawing || !currentStroke) return;
   const pt = getOSDPoint(e.clientX, e.clientY);
   currentStroke.points.push(pt);
-  
   if (!allDrawings[currentPage]) allDrawings[currentPage] = [];
   allDrawings[currentPage].push(currentStroke);
-  redrawCanvas();
-  allDrawings[currentPage].pop(); 
+  redrawCanvas(); allDrawings[currentPage].pop(); 
   e.preventDefault();
 }
 function endDrawing(e) {
   if (!isDrawing || !currentStroke) return;
-  isDrawing = false;
-  drawCanvas.releasePointerCapture(e.pointerId);
+  isDrawing = false; drawCanvas.releasePointerCapture(e.pointerId);
   if (!allDrawings[currentPage]) allDrawings[currentPage] = [];
-  allDrawings[currentPage].push(currentStroke);
-  currentStroke = null;
+  allDrawings[currentPage].push(currentStroke); currentStroke = null;
   autoSave(); redrawCanvas();
 }
 
 function redrawCanvas() {
-  // 高画質化（DPR）に伴うクリア領域の調整
   const w = drawCanvas.width / (window.devicePixelRatio || 1);
   const h = drawCanvas.height / (window.devicePixelRatio || 1);
   ctx.clearRect(0, 0, w, h);
-  
   if (!viewer.viewport || !allDrawings[currentPage]) return;
   
   const currentZoom = viewer.viewport.getZoom(true);
@@ -329,8 +337,7 @@ function redrawCanvas() {
   
   allDrawings[currentPage].forEach(stroke => {
     if (stroke.points.length === 0) return;
-    ctx.beginPath();
-    ctx.strokeStyle = stroke.color;
+    ctx.beginPath(); ctx.strokeStyle = stroke.color;
     ctx.lineWidth = stroke.width * scale * (stroke.isEraser ? 4 : 1); 
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.globalCompositeOperation = stroke.isEraser ? 'destination-out' : 'source-over';
@@ -371,10 +378,22 @@ function handleResize(clientY) {
 // === 各種トグル・UI ===
 function toggleNotes() { notesPanel.classList.toggle('open'); }
 function toggleGuide() { document.getElementById('readingGuide').classList.toggle('active'); }
+
+// スマホ用ダウンロードメニューの表示切り替え（画面下部からのポップアップ対応）
 function toggleMobileDlMenu(e) {
     const menu = document.getElementById('mobileDlMenu');
-    if (menu.style.display === 'flex') { menu.style.display = 'none'; } 
-    else { const btnRect = document.getElementById('mobileDlToggle').getBoundingClientRect(); menu.style.left = (btnRect.left - 50) + 'px'; menu.style.display = 'flex'; }
+    if (menu.style.display === 'flex') { 
+        menu.style.display = 'none'; 
+    } else { 
+        const btnRect = document.getElementById('mobileDlToggle').getBoundingClientRect();
+        menu.style.display = 'flex';
+        // メニューのY座標をボタンの「上」に設定
+        menu.style.bottom = (window.innerHeight - btnRect.top + 5) + 'px';
+        menu.style.top = 'auto';
+        // 画面幅からはみ出ないようにX座標を調整
+        const leftPos = Math.min(btnRect.left, window.innerWidth - 170);
+        menu.style.left = Math.max(10, leftPos) + 'px';
+    }
     if (e) e.stopPropagation();
 }
 document.addEventListener('click', function(e) { const menu = document.getElementById('mobileDlMenu'); if (menu.style.display === 'flex' && e.target.id !== 'mobileDlToggle') menu.style.display = 'none'; });
@@ -457,8 +476,6 @@ function loadPage() {
     const imgUrl = images[currentPage]; if (!imgUrl) return;
     if (imgUrl.startsWith('blob:')) { viewer.open({ type: 'image', url: imgUrl }); } else { viewer.open(imgUrl); }
     pageTextarea.value = notesData[currentPage] || ""; updatePageInfo(); autoSave();
-    
-    // キャンバスをクリア
     const w = drawCanvas.width / (window.devicePixelRatio || 1);
     const h = drawCanvas.height / (window.devicePixelRatio || 1);
     ctx.clearRect(0, 0, w, h);
@@ -551,4 +568,3 @@ document.addEventListener('touchend', function() { if (isDraggingGuide) { isDrag
 </script>
 </body>
 </html>
-
