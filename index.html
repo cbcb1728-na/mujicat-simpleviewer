@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Mujineko-Viewer Tool</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/openseadragon.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></scrip<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mujineko-Viewer Tool</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/openseadragon.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -40,10 +47,10 @@ button.active-tool { background: #ffeeba; border-color: #ffc107; box-shadow: 0 0
 
 /* メインエリア */
 #mainArea { flex: 1; position: relative; display: flex; overflow: hidden; background: var(--viewer-bg); }
-#viewer { flex: 1; height: 100%; width: 100%; z-index: 10; }
+#viewer { flex: 1; height: 100%; width: 100%; z-index: 10; position: relative; }
 
-/* ★お絵描き用キャンバス★ */
-#drawCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; pointer-events: none; }
+/* ★お絵描き用キャンバス (touch-action:none を追加) ★ */
+#drawCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; pointer-events: none; touch-action: none; }
 
 /* ★お絵描きツールバー★ */
 #drawControls {
@@ -111,7 +118,7 @@ button.active-tool { background: #ffeeba; border-color: #ffc107; box-shadow: 0 0
   #viewerControls .v-divider { height: 36px; width: 1px; margin: 0 4px; }
   #notesPanel { top: auto; bottom: -65vh; right: 0; left: 0; width: 100%; height: 60vh; border-radius: 12px 12px 0 0; }
   #notesPanel.open { bottom: 0; right: 0; }
-  #drawControls { top: auto; bottom: 70px; } /* スマホでは下部にフローティング */
+  #drawControls { top: auto; bottom: 70px; } 
 }
 </style>
 </head>
@@ -227,9 +234,11 @@ let penColor = "#111", penWidth = 2, isEraser = false;
 let currentStroke = null;
 
 function resizeCanvas() {
-  drawCanvas.width = drawCanvas.parentElement.clientWidth;
-  drawCanvas.height = drawCanvas.parentElement.clientHeight;
-  redrawCanvas();
+  if (drawCanvas.parentElement) {
+    drawCanvas.width = drawCanvas.parentElement.clientWidth;
+    drawCanvas.height = drawCanvas.parentElement.clientHeight;
+    redrawCanvas();
+  }
 }
 window.addEventListener('resize', resizeCanvas);
 viewer.addHandler('open', resizeCanvas);
@@ -242,9 +251,9 @@ function toggleDrawMode() {
   document.getElementById("btnDrawToggle").classList.toggle('active-tool', isDrawMode);
   document.getElementById("drawControls").style.display = isDrawMode ? "flex" : "none";
   
-  // 手書き中は画像の移動・ズームをロックし、キャンバスにタッチを渡す
   viewer.setMouseNavEnabled(!isDrawMode);
   drawCanvas.style.pointerEvents = isDrawMode ? "auto" : "none";
+  resizeCanvas(); // モード切り替え時に念のためキャンバスサイズを合わせる
 }
 
 function setPenColor(color, btnEl) {
@@ -276,53 +285,56 @@ function getOSDPoint(clientX, clientY) {
   return viewer.viewport.viewportToImageCoordinates(viewportPoint);
 }
 
+// 修正点: マウス・タッチ・ペンすべてを統合処理する Pointer Events に変更
+drawCanvas.addEventListener('pointerdown', startDrawing);
+drawCanvas.addEventListener('pointermove', moveDrawing);
+drawCanvas.addEventListener('pointerup', endDrawing);
+drawCanvas.addEventListener('pointercancel', endDrawing);
+
 function startDrawing(e) {
   if (!isDrawMode || !viewer.viewport) return;
   isDrawing = true;
-  const pt = getOSDPoint(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY);
+  drawCanvas.setPointerCapture(e.pointerId); // キャンバス外に出てもペンを追跡
+  const pt = getOSDPoint(e.clientX, e.clientY);
   currentStroke = { color: penColor, width: penWidth, isEraser: isEraser, points: [pt] };
-  if(e.type.startsWith('touch')) e.preventDefault();
+  e.preventDefault();
 }
 function moveDrawing(e) {
   if (!isDrawing || !currentStroke) return;
-  const pt = getOSDPoint(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY);
+  const pt = getOSDPoint(e.clientX, e.clientY);
   currentStroke.points.push(pt);
   
-  // リアルタイム描画を反映（最適化のため全体ではなく今の線を追記したいが、消しゴム対応のため全体再描画）
   if (!allDrawings[currentPage]) allDrawings[currentPage] = [];
   allDrawings[currentPage].push(currentStroke);
   redrawCanvas();
-  allDrawings[currentPage].pop(); // 一時追加したものを抜く（mouseupで正式追加）
-  
-  if(e.type.startsWith('touch')) e.preventDefault();
+  allDrawings[currentPage].pop(); 
+  e.preventDefault();
 }
-function endDrawing() {
+function endDrawing(e) {
   if (!isDrawing || !currentStroke) return;
   isDrawing = false;
+  drawCanvas.releasePointerCapture(e.pointerId);
   if (!allDrawings[currentPage]) allDrawings[currentPage] = [];
   allDrawings[currentPage].push(currentStroke);
   currentStroke = null;
   autoSave(); redrawCanvas();
 }
 
-drawCanvas.addEventListener('mousedown', startDrawing);
-drawCanvas.addEventListener('mousemove', moveDrawing);
-window.addEventListener('mouseup', endDrawing);
-drawCanvas.addEventListener('touchstart', startDrawing, {passive: false});
-drawCanvas.addEventListener('touchmove', moveDrawing, {passive: false});
-window.addEventListener('touchend', endDrawing);
-
 function redrawCanvas() {
   ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
   if (!viewer.viewport || !allDrawings[currentPage]) return;
-  const zoom = viewer.viewport.viewportToWindowZoom(viewer.viewport.getZoom(true));
+  
+  // 修正点: クラッシュしていたズーム計算式を安全なものに変更
+  const currentZoom = viewer.viewport.getZoom(true);
+  const homeZoom = viewer.viewport.getHomeZoom() || 1;
+  const scale = currentZoom / homeZoom;
   
   allDrawings[currentPage].forEach(stroke => {
     if (stroke.points.length === 0) return;
     ctx.beginPath();
     ctx.strokeStyle = stroke.color;
     // ズームに合わせて線の太さも変える（消しゴムは少し太め）
-    ctx.lineWidth = stroke.width * (stroke.isEraser ? 4 : 1) * zoom; 
+    ctx.lineWidth = stroke.width * scale * (stroke.isEraser ? 4 : 1); 
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.globalCompositeOperation = stroke.isEraser ? 'destination-out' : 'source-over';
     
@@ -448,7 +460,6 @@ function loadPage() {
     const imgUrl = images[currentPage]; if (!imgUrl) return;
     if (imgUrl.startsWith('blob:')) { viewer.open({ type: 'image', url: imgUrl }); } else { viewer.open(imgUrl); }
     pageTextarea.value = notesData[currentPage] || ""; updatePageInfo(); autoSave();
-    // ページが変わったら描画をリセットして再描画
     ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
 }
 
@@ -463,7 +474,6 @@ function jumpPage(val) { saveNotes(); currentPage = parseInt(val); loadPage(); }
 function prevPage() { if (currentPage > 0) { saveNotes(); currentPage--; loadPage(); } }
 function nextPage() { if (currentPage < images.length - 1) { saveNotes(); currentPage++; loadPage(); } }
 
-// DL機能（※現時点では元の画像のみDL。手書きメモはセッション(JSON)で保存されます）
 async function downloadFullImage() {
     const imgUrl = images[currentPage]; if (!imgUrl) return alert("画像がありません。");
     const downloadUrl = imgUrl.startsWith('blob:') ? imgUrl : imgUrl.replace(/\/info\.json$/, '/full/full/0/default.jpg');
@@ -540,5 +550,3 @@ document.addEventListener('touchend', function() { if (isDraggingGuide) { isDrag
 </script>
 </body>
 </html>
-
-
