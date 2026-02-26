@@ -10,56 +10,55 @@
 
 <style>
 /* =========================================
-   基本レイアウト・デザイン（PC用ベース）
+   基本レイアウト・デザイン
 ========================================= */
 :root {
-  --control-bg: #f8f9fa;
-  --border-color: #ddd;
-  --viewer-bg: #1a1a1a;
-  --accent-color: #0056b3;
+  --control-bg: #f8f9fa; --border-color: #ddd; --viewer-bg: #1a1a1a; --accent-color: #0056b3;
 }
-
 body {
   margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
-  font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", sans-serif;
-  color: #333; touch-action: none;
+  font-family: "Helvetica Neue", Arial, sans-serif; color: #333; touch-action: none;
 }
-
-/* ボタンと文字を少し小さくコンパクトに */
 button { cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 4px; padding: 4px 8px; font-size: 12px; transition: 0.2s; touch-action: manipulation; }
 button:hover { background: #e9ecef; }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
+button.active-tool { background: #ffeeba; border-color: #ffc107; box-shadow: 0 0 4px rgba(255,193,7,0.5) inset; }
 
-/* 上部コントロールバー（スリム化） */
+/* 上部コントロールバー */
 #topBar {
   padding: 4px 8px; background: var(--control-bg); border-bottom: 1px solid var(--border-color);
   display: flex; flex-wrap: nowrap; gap: 8px; align-items: center; justify-content: flex-start; 
-  z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; position: relative;
+  z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.05); overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;
 }
-#topBar::-webkit-scrollbar { height: 4px; }
-#topBar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
-
+#topBar::-webkit-scrollbar { display: none; }
 .left-controls, .right-controls { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
-.right-controls { margin-left: auto; } /* ← PC時は右端に寄せる魔法 */
-
+.right-controls { margin-left: auto; }
 .control-group { display: flex; gap: 4px; align-items: center; border-right: 1px solid #ccc; padding-right: 6px; }
 .control-group:last-child { border-right: none; }
-
-/* 入力欄もコンパクトに */
 #manifestUrl { font-size: 12px; padding: 4px; width: 140px; border: 1px solid #ccc; border-radius: 4px; }
 #pageSelect { font-size: 12px; padding: 2px; border: 1px solid #ccc; border-radius: 4px; }
 
 /* メインエリア */
 #mainArea { flex: 1; position: relative; display: flex; overflow: hidden; background: var(--viewer-bg); }
-#viewer { flex: 1; height: 100%; width: 100%; }
+#viewer { flex: 1; height: 100%; width: 100%; z-index: 10; }
 
-/* 読書用ガイド線（3px） */
+/* ★お絵描き用キャンバス★ */
+#drawCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; pointer-events: none; }
+
+/* ★お絵描きツールバー★ */
+#drawControls {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 55;
+  display: none; background: rgba(255, 255, 255, 0.95); padding: 6px 12px; border-radius: 30px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2); gap: 8px; align-items: center; border: 1px solid #ccc;
+}
+.color-btn { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #ddd; padding: 0; }
+.color-btn.active-color { border-color: #333; transform: scale(1.1); }
+.v-divider { height: 20px; width: 1px; background: #ccc; margin: 0 2px; }
+
+/* 読書用ガイド線 */
 #readingGuide {
   position: absolute; top: 0; left: 50%; width: 3px; height: 100%;
-  background: rgba(220, 53, 69, 0.8); z-index: 999;
-  display: none; box-shadow: 0 0 4px rgba(255,255,255,0.5);
-  cursor: ew-resize; touch-action: none;
+  background: rgba(220, 53, 69, 0.8); z-index: 999; display: none; cursor: ew-resize; touch-action: none;
 }
 #readingGuide::before { content: ""; position: absolute; top: 0; left: -25px; right: -25px; bottom: 0; }
 #readingGuide.active { display: block; }
@@ -68,77 +67,51 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 #viewerControls {
   position: absolute; top: 50%; left: 10px; transform: translateY(-50%); z-index: 50;
   display: flex; flex-direction: column; gap: 4px; background: rgba(255, 255, 255, 0.85);
-  padding: 4px; border-radius: 6px; backdrop-filter: blur(4px); box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  padding: 4px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 #viewerControls button { font-size: 12px; padding: 0; width: 30px; height: 30px; border: 1px solid #aaa; font-weight: bold; }
-.v-divider { height: 1px; width: 100%; background: #aaa; margin: 2px 0; }
+#viewerControls .v-divider { height: 1px; width: 100%; background: #aaa; margin: 2px 0; }
 
-/* スライドインするメモパネル */
+/* メモパネル */
 #notesPanel {
-  position: absolute; top: 0; right: -360px; 
-  width: 360px; height: 100%; background: #fff; box-shadow: -4px 0 15px rgba(0,0,0,0.2);
-  transition: right 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 60;
-  display: flex; flex-direction: column;
+  position: absolute; top: 0; right: -360px; width: 360px; height: 100%; background: #fff; box-shadow: -4px 0 15px rgba(0,0,0,0.2);
+  transition: right 0.3s, bottom 0.3s; z-index: 60; display: flex; flex-direction: column;
 }
 #notesPanel.open { right: 0; }
-
-#notesHeader { 
-  padding: 6px 10px; background: #f0f0f0; border-bottom: 1px solid #ddd; 
-  display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; 
-}
+#notesHeader { padding: 6px 10px; background: #f0f0f0; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
 .note-header-buttons { display: flex; gap: 4px; }
-.note-header-buttons button { padding: 4px 8px; font-size: 11px; }
-
 #globalNoteSection { height: 50%; display: flex; flex-direction: column; flex-shrink: 0; }
 #pageNoteSection { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .note-title { padding: 6px 10px; font-size: 11px; font-weight: bold; color: #555; background: #fafafa; border-bottom: 1px solid #eee; flex-shrink: 0; }
-.note-textarea { flex: 1; width: 100%; box-sizing: border-box; resize: none; border: none; padding: 10px; font-size: 14px; line-height: 1.6; outline: none; touch-action: pan-y; }
+.note-textarea { flex: 1; width: 100%; box-sizing: border-box; resize: none; border: none; padding: 10px; font-size: 14px; line-height: 1.6; outline: none; }
 .resizer-h { height: 8px; background: #e0e0e0; cursor: row-resize; flex-shrink: 0; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; }
 
 .btn-primary { background: var(--accent-color); color: #fff; border-color: var(--accent-color); font-weight: bold; }
 .btn-local { background: #28a745; color: #fff; border-color: #28a745; font-weight: bold; }
 .btn-action { font-weight: bold; color: #333; }
 .btn-save { font-weight: bold; color: #006600; background: #e6ffe6; border-color: #b3ffb3; }
+.btn-draw { font-weight: bold; color: #d32f2f; border-color: #d32f2f; }
 
-/* スマホ用DLメニュー（最初は隠しておく） */
 .dl-mobile-btn { display: none; }
 #mobileDlMenu {
   display: none; position: absolute; top: 38px; left: auto; background: #fff; 
-  border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
-  z-index: 200; flex-direction: column; overflow: hidden;
+  border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 200; flex-direction: column;
 }
 #mobileDlMenu button { width: 100%; text-align: left; border: none; border-bottom: 1px solid #eee; border-radius: 0; padding: 10px 15px; font-size: 14px; }
-#mobileDlMenu button:last-child { border-bottom: none; }
 
-/* =========================================
-   📱 スマホ・タブレット用レイアウト
-========================================= */
+/* スマホ・タブレット用 */
 @media (max-width: 768px) {
-  #topBar { padding: 4px; }
-  #topBar::-webkit-scrollbar { display: none; }
   #manifestUrl { width: 100px; }
-  
-  .right-controls { margin-left: 0; } /* スマホ時は右寄せ解除（横スクロールのため） */
-
-  /* PC用のDLボタンを隠し、スマホ用の統合ボタンを出す */
+  .right-controls { margin-left: 0; }
   .dl-pc-btn { display: none !important; }
   .dl-mobile-btn { display: inline-block !important; }
-
-  /* メモボタンの文字を隠す */
   .hide-text-mobile { display: none; }
-
-  #viewerControls {
-    top: auto; bottom: 20px; left: 50%; transform: translateX(-50%);
-    flex-direction: row; border-radius: 20px; padding: 6px 12px; gap: 8px;
-  }
+  #viewerControls { top: auto; bottom: 20px; left: 50%; transform: translateX(-50%); flex-direction: row; border-radius: 20px; padding: 6px 12px; gap: 8px; }
   #viewerControls button { width: 36px; height: 36px; font-size: 14px; border-radius: 50%; }
-  .v-divider { height: 36px; width: 1px; margin: 0 4px; }
-
-  #notesPanel {
-    top: auto; bottom: -65vh; right: 0; left: 0;
-    width: 100%; height: 60vh; border-radius: 12px 12px 0 0;
-  }
+  #viewerControls .v-divider { height: 36px; width: 1px; margin: 0 4px; }
+  #notesPanel { top: auto; bottom: -65vh; right: 0; left: 0; width: 100%; height: 60vh; border-radius: 12px 12px 0 0; }
   #notesPanel.open { bottom: 0; right: 0; }
+  #drawControls { top: auto; bottom: 70px; } /* スマホでは下部にフローティング */
 }
 </style>
 </head>
@@ -160,13 +133,14 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   </div>
   
   <div class="right-controls">
+    <div class="control-group">
+      <button onclick="toggleDrawMode()" id="btnDrawToggle" class="btn-draw">🖊️ <span class="hide-text-mobile">手書き</span></button>
+    </div>
     <div class="control-group dl-group">
       <button onclick="downloadFullImage()" class="btn-action dl-pc-btn">⬇️ 1頁</button>
       <button onclick="downloadMultipleZip()" class="btn-action dl-pc-btn" id="btnMultiZip">🗂️ ZIP</button>
       <button onclick="downloadMultiplePdf()" class="btn-action dl-pc-btn" id="btnMultiPdf">📄 PDF</button>
-      
       <button onclick="toggleMobileDlMenu(event)" class="btn-action dl-mobile-btn" id="mobileDlToggle">⬇️</button>
-      
       <div id="mobileDlMenu">
         <button onclick="downloadFullImage(); toggleMobileDlMenu();">⬇️ 1枚保存 (JPG)</button>
         <button onclick="downloadMultipleZip(); toggleMobileDlMenu();">🗂️ 複数枚 (ZIP)</button>
@@ -174,14 +148,13 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
       </div>
     </div>
     <div class="control-group" style="border-right: none;">
-      <button onclick="toggleNotes()" class="btn-action" style="background:#fff3cd;">📝 <span class="hide-text-mobile">メモを開く</span></button>
+      <button onclick="toggleNotes()" class="btn-action" style="background:#fff3cd;">📝 <span class="hide-text-mobile">メモ</span></button>
     </div>
   </div>
 </div>
 
 <div id="mainArea">
   <div id="readingGuide"></div>
-
   <div id="viewerControls">
     <button onclick="toggleGuide()" title="読書用ガイド線">線</button>
     <div class="v-divider"></div>
@@ -192,8 +165,21 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
     <button onclick="rotate(-90)">↶</button>
     <button onclick="rotate(90)">↷</button>
   </div>
-  
+
+  <div id="drawControls">
+    <button onclick="setPenColor('#111', this)" class="color-btn active-color" style="background:#111;"></button>
+    <button onclick="setPenColor('#d32f2f', this)" class="color-btn" style="background:#d32f2f;"></button>
+    <button onclick="setPenColor('#1976d2', this)" class="color-btn" style="background:#1976d2;"></button>
+    <div class="v-divider"></div>
+    <button onclick="setPenWidth(2)" id="btnThin" class="active-tool">細</button>
+    <button onclick="setPenWidth(6)" id="btnThick">太</button>
+    <div class="v-divider"></div>
+    <button onclick="toggleEraser()" id="btnEraser">🧽 消しゴム</button>
+    <button onclick="clearDrawings()">🗑️ 全消去</button>
+  </div>
+
   <div id="viewer"></div>
+  <canvas id="drawCanvas"></canvas>
 
   <div id="notesPanel">
     <div id="notesHeader">
@@ -220,6 +206,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 <script>
 let images = [], notesData = [], globalNote = "", currentPage = 0;
 let filterState = { contrast: false, invert: false };
+let allDrawings = {}; // { pageIndex: [ { color, width, isEraser, points: [{x,y}] } ] }
 
 const pSelect = document.getElementById("pageSelect");
 const globalTextarea = document.getElementById("globalNotesTextarea");
@@ -229,27 +216,142 @@ const notesPanel = document.getElementById("notesPanel");
 const viewer = OpenSeadragon({
   id: "viewer", prefixUrl: "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/images/",
   showNavigator: true, navigatorPosition: "BOTTOM_LEFT", navigatorWidth: "80px", navigatorHeight: "80px",
-  animationTime: 0.4, gestureSettingsMouse: { clickToZoom: true },
-  preserveViewport: true, visibilityRatio: 0.5
+  animationTime: 0.4, gestureSettingsMouse: { clickToZoom: true }, preserveViewport: true, visibilityRatio: 0.5
 });
 
+// === 手書き（お絵描き）機能のコア処理 ===
+const drawCanvas = document.getElementById("drawCanvas");
+const ctx = drawCanvas.getContext("2d");
+let isDrawMode = false, isDrawing = false;
+let penColor = "#111", penWidth = 2, isEraser = false;
+let currentStroke = null;
+
+function resizeCanvas() {
+  drawCanvas.width = drawCanvas.parentElement.clientWidth;
+  drawCanvas.height = drawCanvas.parentElement.clientHeight;
+  redrawCanvas();
+}
+window.addEventListener('resize', resizeCanvas);
+viewer.addHandler('open', resizeCanvas);
+viewer.addHandler('animation', redrawCanvas);
+viewer.addHandler('update-viewport', redrawCanvas);
+
+function toggleDrawMode() {
+  if (!images[currentPage]) return alert("画像を開いてから手書きモードにしてください。");
+  isDrawMode = !isDrawMode;
+  document.getElementById("btnDrawToggle").classList.toggle('active-tool', isDrawMode);
+  document.getElementById("drawControls").style.display = isDrawMode ? "flex" : "none";
+  
+  // 手書き中は画像の移動・ズームをロックし、キャンバスにタッチを渡す
+  viewer.setMouseNavEnabled(!isDrawMode);
+  drawCanvas.style.pointerEvents = isDrawMode ? "auto" : "none";
+}
+
+function setPenColor(color, btnEl) {
+  isEraser = false; penColor = color;
+  document.getElementById("btnEraser").classList.remove('active-tool');
+  document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active-color'));
+  if(btnEl) btnEl.classList.add('active-color');
+}
+function setPenWidth(w) {
+  penWidth = w;
+  document.getElementById("btnThin").classList.toggle('active-tool', w === 2);
+  document.getElementById("btnThick").classList.toggle('active-tool', w === 6);
+}
+function toggleEraser() {
+  isEraser = true;
+  document.getElementById("btnEraser").classList.add('active-tool');
+  document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active-color'));
+}
+function clearDrawings() {
+  if (confirm("このページの手書きメモをすべて消去しますか？")) {
+    allDrawings[currentPage] = []; redrawCanvas(); autoSave();
+  }
+}
+
+function getOSDPoint(clientX, clientY) {
+  const rect = drawCanvas.getBoundingClientRect();
+  const webPoint = new OpenSeadragon.Point(clientX - rect.left, clientY - rect.top);
+  const viewportPoint = viewer.viewport.windowToViewportCoordinates(webPoint);
+  return viewer.viewport.viewportToImageCoordinates(viewportPoint);
+}
+
+function startDrawing(e) {
+  if (!isDrawMode || !viewer.viewport) return;
+  isDrawing = true;
+  const pt = getOSDPoint(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY);
+  currentStroke = { color: penColor, width: penWidth, isEraser: isEraser, points: [pt] };
+  if(e.type.startsWith('touch')) e.preventDefault();
+}
+function moveDrawing(e) {
+  if (!isDrawing || !currentStroke) return;
+  const pt = getOSDPoint(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY);
+  currentStroke.points.push(pt);
+  
+  // リアルタイム描画を反映（最適化のため全体ではなく今の線を追記したいが、消しゴム対応のため全体再描画）
+  if (!allDrawings[currentPage]) allDrawings[currentPage] = [];
+  allDrawings[currentPage].push(currentStroke);
+  redrawCanvas();
+  allDrawings[currentPage].pop(); // 一時追加したものを抜く（mouseupで正式追加）
+  
+  if(e.type.startsWith('touch')) e.preventDefault();
+}
+function endDrawing() {
+  if (!isDrawing || !currentStroke) return;
+  isDrawing = false;
+  if (!allDrawings[currentPage]) allDrawings[currentPage] = [];
+  allDrawings[currentPage].push(currentStroke);
+  currentStroke = null;
+  autoSave(); redrawCanvas();
+}
+
+drawCanvas.addEventListener('mousedown', startDrawing);
+drawCanvas.addEventListener('mousemove', moveDrawing);
+window.addEventListener('mouseup', endDrawing);
+drawCanvas.addEventListener('touchstart', startDrawing, {passive: false});
+drawCanvas.addEventListener('touchmove', moveDrawing, {passive: false});
+window.addEventListener('touchend', endDrawing);
+
+function redrawCanvas() {
+  ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+  if (!viewer.viewport || !allDrawings[currentPage]) return;
+  const zoom = viewer.viewport.viewportToWindowZoom(viewer.viewport.getZoom(true));
+  
+  allDrawings[currentPage].forEach(stroke => {
+    if (stroke.points.length === 0) return;
+    ctx.beginPath();
+    ctx.strokeStyle = stroke.color;
+    // ズームに合わせて線の太さも変える（消しゴムは少し太め）
+    ctx.lineWidth = stroke.width * (stroke.isEraser ? 4 : 1) * zoom; 
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.globalCompositeOperation = stroke.isEraser ? 'destination-out' : 'source-over';
+    
+    stroke.points.forEach((pt, idx) => {
+      const vPt = viewer.viewport.imageToViewportCoordinates(pt.x, pt.y);
+      const wPt = viewer.viewport.viewportToWindowCoordinates(vPt);
+      const rect = drawCanvas.getBoundingClientRect();
+      const x = wPt.x - rect.left; const y = wPt.y - rect.top;
+      if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  });
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+// === メモパネルのリサイズ ===
 let isResizingNote = false;
 const noteResizer = document.getElementById("noteResizer");
 const globalNoteSection = document.getElementById("globalNoteSection");
 const notesHeader = document.getElementById("notesHeader");
-
 noteResizer.addEventListener("mousedown", (e) => { isResizingNote = true; document.body.style.cursor = 'row-resize'; e.preventDefault(); });
 document.addEventListener("mousemove", (e) => handleResize(e.clientY));
 document.addEventListener("mouseup", () => { if(isResizingNote) { isResizingNote = false; document.body.style.cursor = ''; } });
-
 noteResizer.addEventListener("touchstart", (e) => { isResizingNote = true; e.preventDefault(); }, {passive: false});
 document.addEventListener("touchmove", (e) => { if(isResizingNote) handleResize(e.touches[0].clientY); }, {passive: false});
 document.addEventListener("touchend", () => { isResizingNote = false; });
-
 function handleResize(clientY) {
     if (!isResizingNote) return;
-    const panelRect = notesPanel.getBoundingClientRect();
-    const headerHeight = notesHeader.offsetHeight;
+    const panelRect = notesPanel.getBoundingClientRect(); const headerHeight = notesHeader.offsetHeight;
     let y = clientY - panelRect.top - headerHeight;
     const availableHeight = panelRect.height - headerHeight - noteResizer.offsetHeight;
     let percentage = (y / availableHeight) * 100;
@@ -257,50 +359,39 @@ function handleResize(clientY) {
     globalNoteSection.style.height = percentage + "%";
 }
 
+// === 各種トグル・UI ===
 function toggleNotes() { notesPanel.classList.toggle('open'); }
 function toggleGuide() { document.getElementById('readingGuide').classList.toggle('active'); }
-
-// スマホ用DLメニューの開閉
 function toggleMobileDlMenu(e) {
     const menu = document.getElementById('mobileDlMenu');
-    if (menu.style.display === 'flex') {
-        menu.style.display = 'none';
-    } else {
-        const btnRect = document.getElementById('mobileDlToggle').getBoundingClientRect();
-        menu.style.left = (btnRect.left - 50) + 'px'; // ボタンの少し左下に表示
-        menu.style.display = 'flex';
-    }
+    if (menu.style.display === 'flex') { menu.style.display = 'none'; } 
+    else { const btnRect = document.getElementById('mobileDlToggle').getBoundingClientRect(); menu.style.left = (btnRect.left - 50) + 'px'; menu.style.display = 'flex'; }
     if (e) e.stopPropagation();
 }
-// 画面のどこかをタップしたらDLメニューを閉じる
-document.addEventListener('click', function(e) {
-    const menu = document.getElementById('mobileDlMenu');
-    if (menu.style.display === 'flex' && e.target.id !== 'mobileDlToggle') {
-        menu.style.display = 'none';
-    }
-});
+document.addEventListener('click', function(e) { const menu = document.getElementById('mobileDlMenu'); if (menu.style.display === 'flex' && e.target.id !== 'mobileDlToggle') menu.style.display = 'none'; });
 
 function applyFilters() {
-    const canvases = document.querySelectorAll('#viewer canvas');
-    let s = "";
-    if (filterState.contrast) s += "contrast(250%) grayscale(80%) ";
-    if (filterState.invert) s += "invert(100%) ";
+    const canvases = document.querySelectorAll('#viewer canvas:not(#drawCanvas)');
+    let s = ""; if (filterState.contrast) s += "contrast(250%) grayscale(80%) "; if (filterState.invert) s += "invert(100%) ";
     canvases.forEach(c => { c.style.filter = s.trim(); });
 }
 function toggleFilter(t) { filterState[t] = !filterState[t]; applyFilters(); }
 function resetFilters() { filterState = { contrast: false, invert: false }; applyFilters(); viewer.viewport.setRotation(0); viewer.viewport.goHome(); }
 function rotate(d) { viewer.viewport.setRotation(viewer.viewport.getRotation() + d); }
 
+// === データ保存・復元 ===
 function autoSave() {
     localStorage.setItem("viewer_images", JSON.stringify(images));
     localStorage.setItem("viewer_notes", JSON.stringify(notesData));
     localStorage.setItem("viewer_global_note", globalNote);
     localStorage.setItem("viewer_page", currentPage);
+    localStorage.setItem("viewer_drawings", JSON.stringify(allDrawings));
 }
 function autoLoad() {
     images = JSON.parse(localStorage.getItem("viewer_images")) || [];
     notesData = JSON.parse(localStorage.getItem("viewer_notes")) || [];
     globalNote = localStorage.getItem("viewer_global_note") || "";
+    allDrawings = JSON.parse(localStorage.getItem("viewer_drawings")) || {};
     currentPage = parseInt(localStorage.getItem("viewer_page")) || 0;
     globalTextarea.value = globalNote;
     if (images.length > 0) { updatePageInfo(); loadPage(); }
@@ -308,12 +399,11 @@ function autoLoad() {
 window.addEventListener('DOMContentLoaded', autoLoad);
 
 function saveNotes() { notesData[currentPage] = pageTextarea.value; globalNote = globalTextarea.value; autoSave(); }
-pageTextarea.addEventListener("input", saveNotes);
-globalTextarea.addEventListener("input", saveNotes);
+pageTextarea.addEventListener("input", saveNotes); globalTextarea.addEventListener("input", saveNotes);
 
 function exportSession() {
     saveNotes();
-    const data = { images, notesData, globalNote, currentPage };
+    const data = { images, notesData, globalNote, currentPage, allDrawings };
     const blob = new Blob([JSON.stringify(data)], {type: "application/json"});
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "viewer_session.json"; a.click();
 }
@@ -325,6 +415,7 @@ document.getElementById("sessionLoader").addEventListener("change", function(e) 
             const data = JSON.parse(ev.target.result);
             images = data.images || []; notesData = data.notesData || [];
             globalNote = data.globalNote || ""; currentPage = data.currentPage || 0;
+            allDrawings = data.allDrawings || {};
             globalTextarea.value = globalNote; updatePageInfo(); loadPage();
             alert("セッションを読み込みました！");
         } catch(err) { alert("失敗しました。"); }
@@ -332,7 +423,6 @@ document.getElementById("sessionLoader").addEventListener("change", function(e) 
     reader.readAsText(file); e.target.value = "";
 });
 
-// === IIIFの読み込み ===
 async function loadManifest() {
     const url = document.getElementById('manifestUrl').value.trim(); if (!url) return;
     try {
@@ -340,36 +430,26 @@ async function loadManifest() {
         let canvases = (json.sequences) ? json.sequences[0].canvases : json.items;
         images = canvases.map(c => {
             if (c.images) return c.images[0].resource.service['@id'] + '/info.json';
-            if (c.items) return c.items[0].items[0].body.service[0]['@id'] || c.items[0].items[0].body.service['id'];
-            return null;
+            if (c.items) return c.items[0].items[0].body.service[0]['@id'] || c.items[0].items[0].body.service['id']; return null;
         }).filter(Boolean);
-        notesData = new Array(images.length).fill(""); globalNote = ""; globalTextarea.value = ""; currentPage = 0;
+        notesData = new Array(images.length).fill(""); globalNote = ""; globalTextarea.value = ""; currentPage = 0; allDrawings = {};
         loadPage(); alert("IIIFを読み込みました");
     } catch (e) { alert("読み込み失敗"); }
 }
 
-// === ローカル画像の読み込み ===
 document.getElementById("localImageLoader").addEventListener("change", function(e) {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-    
-    // 画像URL（Blob）の配列を生成
+    const files = Array.from(e.target.files); if (files.length === 0) return;
     images = files.map(file => URL.createObjectURL(file));
-    notesData = new Array(images.length).fill("");
-    globalNote = ""; globalTextarea.value = ""; currentPage = 0;
-    
-    loadPage(); alert(files.length + "枚のローカル画像を読み込みました！");
+    notesData = new Array(images.length).fill(""); globalNote = ""; globalTextarea.value = ""; currentPage = 0; allDrawings = {};
+    loadPage(); alert(files.length + "枚の画像を読み込みました！");
 });
 
 function loadPage() {
     const imgUrl = images[currentPage]; if (!imgUrl) return;
-    // ローカル画像(blob)とIIIF画像で読み込み方式を分ける
-    if (imgUrl.startsWith('blob:')) {
-        viewer.open({ type: 'image', url: imgUrl });
-    } else {
-        viewer.open(imgUrl);
-    }
+    if (imgUrl.startsWith('blob:')) { viewer.open({ type: 'image', url: imgUrl }); } else { viewer.open(imgUrl); }
     pageTextarea.value = notesData[currentPage] || ""; updatePageInfo(); autoSave();
+    // ページが変わったら描画をリセットして再描画
+    ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
 }
 
 function updatePageInfo() {
@@ -383,7 +463,7 @@ function jumpPage(val) { saveNotes(); currentPage = parseInt(val); loadPage(); }
 function prevPage() { if (currentPage > 0) { saveNotes(); currentPage--; loadPage(); } }
 function nextPage() { if (currentPage < images.length - 1) { saveNotes(); currentPage++; loadPage(); } }
 
-// === ダウンロード処理（ローカル・IIIF両対応） ===
+// DL機能（※現時点では元の画像のみDL。手書きメモはセッション(JSON)で保存されます）
 async function downloadFullImage() {
     const imgUrl = images[currentPage]; if (!imgUrl) return alert("画像がありません。");
     const downloadUrl = imgUrl.startsWith('blob:') ? imgUrl : imgUrl.replace(/\/info\.json$/, '/full/full/0/default.jpg');
@@ -394,30 +474,24 @@ async function downloadFullImage() {
         document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); document.body.removeChild(a);
     } catch (e) { window.open(downloadUrl, '_blank'); }
 }
-
 function getPageRange() {
     if (images.length === 0) return null;
-    const input = prompt(`保存範囲 (例: 1-5)\n※最大: ${images.length}`);
-    if (!input) return null;
+    const input = prompt(`保存範囲 (例: 1-5)\n※最大: ${images.length}`); if (!input) return null;
     const parts = input.split('-'); if (parts.length !== 2) return null;
     const start = parseInt(parts[0]) - 1, end = parseInt(parts[1]) - 1;
     if (isNaN(start) || isNaN(end) || start < 0 || end >= images.length || start > end) return null;
     return { start, end };
 }
-
 async function downloadMultipleZip() {
     const range = getPageRange(); if (!range) return;
-    const { start, end } = range; const btn = document.getElementById('btnMultiZip'); 
-    const originalText = btn.innerText; btn.innerText = "⏳"; btn.disabled = true;
+    const { start, end } = range; const btn = document.getElementById('btnMultiZip'); const originalText = btn.innerText; btn.innerText = "⏳"; btn.disabled = true;
     try {
         const zip = new JSZip(); let successCount = 0;
         for (let i = start; i <= end; i++) {
-            const imgUrl = images[i];
-            const dlUrl = imgUrl.startsWith('blob:') ? imgUrl : imgUrl.replace(/\/info\.json$/, '/full/full/0/default.jpg');
+            const imgUrl = images[i]; const dlUrl = imgUrl.startsWith('blob:') ? imgUrl : imgUrl.replace(/\/info\.json$/, '/full/full/0/default.jpg');
             try {
                 const response = await fetch(dlUrl); if (!response.ok) throw new Error("error");
-                zip.file(`page_${String(i + 1).padStart(3, '0')}.jpg`, await response.blob()); successCount++;
-                btn.innerText = `⏳ ${successCount}`;
+                zip.file(`page_${String(i + 1).padStart(3, '0')}.jpg`, await response.blob()); successCount++; btn.innerText = `⏳ ${successCount}`;
             } catch (err) {}
         }
         if (successCount > 0) {
@@ -427,24 +501,19 @@ async function downloadMultipleZip() {
         }
     } finally { btn.innerText = originalText; btn.disabled = false; }
 }
-
 async function downloadMultiplePdf() {
     const range = getPageRange(); if (!range) return;
-    const { start, end } = range; const btn = document.getElementById('btnMultiPdf'); 
-    const originalText = btn.innerText; btn.innerText = "⏳"; btn.disabled = true;
+    const { start, end } = range; const btn = document.getElementById('btnMultiPdf'); const originalText = btn.innerText; btn.innerText = "⏳"; btn.disabled = true;
     try {
-        const { jsPDF } = window.jspdf; const pdf = new jsPDF('p', 'pt', 'a4'); 
-        let isFirstPage = true; let successCount = 0;
+        const { jsPDF } = window.jspdf; const pdf = new jsPDF('p', 'pt', 'a4'); let isFirstPage = true; let successCount = 0;
         for (let i = start; i <= end; i++) {
-            const imgUrl = images[i];
-            const dlUrl = imgUrl.startsWith('blob:') ? imgUrl : imgUrl.replace(/\/info\.json$/, '/full/full/0/default.jpg');
+            const imgUrl = images[i]; const dlUrl = imgUrl.startsWith('blob:') ? imgUrl : imgUrl.replace(/\/info\.json$/, '/full/full/0/default.jpg');
             try {
                 const response = await fetch(dlUrl); const blob = await response.blob();
                 const objectUrl = URL.createObjectURL(blob); const img = new Image(); img.src = objectUrl;
                 await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
                 const orientation = img.width > img.height ? 'l' : 'p';
-                if (isFirstPage) { pdf.deletePage(1); pdf.addPage([img.width, img.height], orientation); isFirstPage = false; } 
-                else { pdf.addPage([img.width, img.height], orientation); }
+                if (isFirstPage) { pdf.deletePage(1); pdf.addPage([img.width, img.height], orientation); isFirstPage = false; } else { pdf.addPage([img.width, img.height], orientation); }
                 const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height;
                 canvas.getContext('2d').drawImage(img, 0, 0);
                 pdf.addImage(canvas.toDataURL('image/jpeg', 0.8), 'JPEG', 0, 0, img.width, img.height);
@@ -456,37 +525,20 @@ async function downloadMultiplePdf() {
 }
 
 document.addEventListener('keydown', function(event) {
-    const activeTag = event.target.tagName.toLowerCase();
-    if (activeTag === 'input' || activeTag === 'textarea') return;
-    if (event.key === 'ArrowLeft') { event.preventDefault(); event.stopPropagation(); nextPage(); } 
-    else if (event.key === 'ArrowRight') { event.preventDefault(); event.stopPropagation(); prevPage(); }
+    const activeTag = event.target.tagName.toLowerCase(); if (activeTag === 'input' || activeTag === 'textarea') return;
+    if (event.key === 'ArrowLeft') { event.preventDefault(); event.stopPropagation(); nextPage(); } else if (event.key === 'ArrowRight') { event.preventDefault(); event.stopPropagation(); prevPage(); }
 }, true);
 
-const readingGuide = document.getElementById('readingGuide');
-let isDraggingGuide = false;
-
-readingGuide.addEventListener('mousedown', function(e) {
-    isDraggingGuide = true; document.body.style.cursor = 'ew-resize';
-    document.body.style.userSelect = 'none'; e.preventDefault(); e.stopPropagation();
-});
-document.addEventListener('mousemove', function(e) {
-    if (isDraggingGuide) readingGuide.style.left = e.clientX + 'px';
-});
-document.addEventListener('mouseup', function() {
-    if (isDraggingGuide) { isDraggingGuide = false; document.body.style.cursor = ''; document.body.style.userSelect = ''; }
-});
-
-readingGuide.addEventListener('touchstart', function(e) {
-    isDraggingGuide = true; document.body.style.userSelect = 'none';
-    e.preventDefault(); e.stopPropagation();
-}, {passive: false});
-document.addEventListener('touchmove', function(e) {
-    if (isDraggingGuide) readingGuide.style.left = e.touches[0].clientX + 'px';
-}, {passive: false});
-document.addEventListener('touchend', function() {
-    if (isDraggingGuide) { isDraggingGuide = false; document.body.style.userSelect = ''; }
-});
+// ガイド線
+const readingGuide = document.getElementById('readingGuide'); let isDraggingGuide = false;
+readingGuide.addEventListener('mousedown', function(e) { isDraggingGuide = true; document.body.style.cursor = 'ew-resize'; document.body.style.userSelect = 'none'; e.preventDefault(); e.stopPropagation(); });
+document.addEventListener('mousemove', function(e) { if (isDraggingGuide) readingGuide.style.left = e.clientX + 'px'; });
+document.addEventListener('mouseup', function() { if (isDraggingGuide) { isDraggingGuide = false; document.body.style.cursor = ''; document.body.style.userSelect = ''; } });
+readingGuide.addEventListener('touchstart', function(e) { isDraggingGuide = true; document.body.style.userSelect = 'none'; e.preventDefault(); e.stopPropagation(); }, {passive: false});
+document.addEventListener('touchmove', function(e) { if (isDraggingGuide) readingGuide.style.left = e.touches[0].clientX + 'px'; }, {passive: false});
+document.addEventListener('touchend', function() { if (isDraggingGuide) { isDraggingGuide = false; document.body.style.userSelect = ''; } });
 </script>
 </body>
 </html>
+
 
