@@ -25,26 +25,30 @@ body {
   color: #333; touch-action: none;
 }
 
-button { cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 4px; padding: 6px 10px; font-size: 13px; transition: 0.2s; touch-action: manipulation; }
+/* ボタンと文字を少し小さくコンパクトに */
+button { cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 4px; padding: 4px 8px; font-size: 12px; transition: 0.2s; touch-action: manipulation; }
 button:hover { background: #e9ecef; }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* 上部コントロールバー（1行固定・横スクロール） */
+/* 上部コントロールバー（スリム化） */
 #topBar {
-  padding: 6px 10px; background: var(--control-bg); border-bottom: 1px solid var(--border-color);
-  display: flex; flex-wrap: nowrap; gap: 10px; align-items: center; justify-content: flex-start; 
+  padding: 4px 8px; background: var(--control-bg); border-bottom: 1px solid var(--border-color);
+  display: flex; flex-wrap: nowrap; gap: 8px; align-items: center; justify-content: flex-start; 
   z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;
+  overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; position: relative;
 }
 #topBar::-webkit-scrollbar { height: 4px; }
 #topBar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
 
-.left-controls, .right-controls { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
-.control-group { display: flex; gap: 4px; align-items: center; border-right: 1px solid #ccc; padding-right: 8px; }
+.left-controls, .right-controls { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
+.right-controls { margin-left: auto; } /* ← PC時は右端に寄せる魔法 */
+
+.control-group { display: flex; gap: 4px; align-items: center; border-right: 1px solid #ccc; padding-right: 6px; }
 .control-group:last-child { border-right: none; }
 
-#manifestUrl { font-size: 13px; padding: 6px; width: 160px; border: 1px solid #ccc; border-radius: 4px; }
-#pageSelect { font-size: 13px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; }
+/* 入力欄もコンパクトに */
+#manifestUrl { font-size: 12px; padding: 4px; width: 140px; border: 1px solid #ccc; border-radius: 4px; }
+#pageSelect { font-size: 12px; padding: 2px; border: 1px solid #ccc; border-radius: 4px; }
 
 /* メインエリア */
 #mainArea { flex: 1; position: relative; display: flex; overflow: hidden; background: var(--viewer-bg); }
@@ -60,7 +64,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 #readingGuide::before { content: ""; position: absolute; top: 0; left: -25px; right: -25px; bottom: 0; }
 #readingGuide.active { display: block; }
 
-/* 画像調整ボタン（PC時は左端中央） */
+/* 画像調整ボタン */
 #viewerControls {
   position: absolute; top: 50%; left: 10px; transform: translateY(-50%); z-index: 50;
   display: flex; flex-direction: column; gap: 4px; background: rgba(255, 255, 255, 0.85);
@@ -78,9 +82,8 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 #notesPanel.open { right: 0; }
 
-/* メモパネルのヘッダー（保存・読込ボタンをお引越し） */
 #notesHeader { 
-  padding: 8px 10px; background: #f0f0f0; border-bottom: 1px solid #ddd; 
+  padding: 6px 10px; background: #f0f0f0; border-bottom: 1px solid #ddd; 
   display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; 
 }
 .note-header-buttons { display: flex; gap: 4px; }
@@ -93,19 +96,37 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .resizer-h { height: 8px; background: #e0e0e0; cursor: row-resize; flex-shrink: 0; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; }
 
 .btn-primary { background: var(--accent-color); color: #fff; border-color: var(--accent-color); font-weight: bold; }
+.btn-local { background: #28a745; color: #fff; border-color: #28a745; font-weight: bold; }
 .btn-action { font-weight: bold; color: #333; }
 .btn-save { font-weight: bold; color: #006600; background: #e6ffe6; border-color: #b3ffb3; }
+
+/* スマホ用DLメニュー（最初は隠しておく） */
+.dl-mobile-btn { display: none; }
+#mobileDlMenu {
+  display: none; position: absolute; top: 38px; left: auto; background: #fff; 
+  border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+  z-index: 200; flex-direction: column; overflow: hidden;
+}
+#mobileDlMenu button { width: 100%; text-align: left; border: none; border-bottom: 1px solid #eee; border-radius: 0; padding: 10px 15px; font-size: 14px; }
+#mobileDlMenu button:last-child { border-bottom: none; }
 
 /* =========================================
    📱 スマホ・タブレット用レイアウト
 ========================================= */
 @media (max-width: 768px) {
-  /* トップバーを完全に1行にして、横にスクロール可能にする */
-  #topBar { padding: 6px; }
-  #topBar::-webkit-scrollbar { display: none; } /* スクロールバーを隠す */
-  #manifestUrl { width: 110px; } /* スマホではURL欄を短く */
+  #topBar { padding: 4px; }
+  #topBar::-webkit-scrollbar { display: none; }
+  #manifestUrl { width: 100px; }
+  
+  .right-controls { margin-left: 0; } /* スマホ時は右寄せ解除（横スクロールのため） */
 
-  /* 画像調整ボタンを画面「下部中央」に横並び配置 */
+  /* PC用のDLボタンを隠し、スマホ用の統合ボタンを出す */
+  .dl-pc-btn { display: none !important; }
+  .dl-mobile-btn { display: inline-block !important; }
+
+  /* メモボタンの文字を隠す */
+  .hide-text-mobile { display: none; }
+
   #viewerControls {
     top: auto; bottom: 20px; left: 50%; transform: translateX(-50%);
     flex-direction: row; border-radius: 20px; padding: 6px 12px; gap: 8px;
@@ -113,7 +134,6 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   #viewerControls button { width: 36px; height: 36px; font-size: 14px; border-radius: 50%; }
   .v-divider { height: 36px; width: 1px; margin: 0 4px; }
 
-  /* メモパネルは「下から」スライドアップ */
   #notesPanel {
     top: auto; bottom: -65vh; right: 0; left: 0;
     width: 100%; height: 60vh; border-radius: 12px 12px 0 0;
@@ -128,7 +148,9 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   <div class="left-controls">
     <div class="control-group">
       <input type="text" id="manifestUrl" placeholder="IIIF URL">
-      <button onclick="loadManifest()" class="btn-primary">読込</button>
+      <button onclick="loadManifest()" class="btn-primary" title="IIIF読込">🌐</button>
+      <button onclick="document.getElementById('localImageLoader').click()" class="btn-local" title="ローカル画像読込">📁</button>
+      <input type="file" id="localImageLoader" multiple accept="image/*" style="display:none">
     </div>
     <div class="control-group">
       <button onclick="nextPage()">◀</button>
@@ -138,13 +160,21 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   </div>
   
   <div class="right-controls">
-    <div class="control-group">
-      <button onclick="downloadFullImage()" class="btn-action">⬇️ 1頁</button>
-      <button onclick="downloadMultipleZip()" class="btn-action" id="btnMultiZip">🗂️ ZIP</button>
-      <button onclick="downloadMultiplePdf()" class="btn-action" id="btnMultiPdf">📄 PDF</button>
+    <div class="control-group dl-group">
+      <button onclick="downloadFullImage()" class="btn-action dl-pc-btn">⬇️ 1頁</button>
+      <button onclick="downloadMultipleZip()" class="btn-action dl-pc-btn" id="btnMultiZip">🗂️ ZIP</button>
+      <button onclick="downloadMultiplePdf()" class="btn-action dl-pc-btn" id="btnMultiPdf">📄 PDF</button>
+      
+      <button onclick="toggleMobileDlMenu(event)" class="btn-action dl-mobile-btn" id="mobileDlToggle">⬇️</button>
+      
+      <div id="mobileDlMenu">
+        <button onclick="downloadFullImage(); toggleMobileDlMenu();">⬇️ 1枚保存 (JPG)</button>
+        <button onclick="downloadMultipleZip(); toggleMobileDlMenu();">🗂️ 複数枚 (ZIP)</button>
+        <button onclick="downloadMultiplePdf(); toggleMobileDlMenu();">📄 複数枚 (PDF)</button>
+      </div>
     </div>
     <div class="control-group" style="border-right: none;">
-      <button onclick="toggleNotes()" class="btn-action" style="background:#fff3cd;">📝 メモを開く</button>
+      <button onclick="toggleNotes()" class="btn-action" style="background:#fff3cd;">📝 <span class="hide-text-mobile">メモを開く</span></button>
     </div>
   </div>
 </div>
@@ -230,6 +260,26 @@ function handleResize(clientY) {
 function toggleNotes() { notesPanel.classList.toggle('open'); }
 function toggleGuide() { document.getElementById('readingGuide').classList.toggle('active'); }
 
+// スマホ用DLメニューの開閉
+function toggleMobileDlMenu(e) {
+    const menu = document.getElementById('mobileDlMenu');
+    if (menu.style.display === 'flex') {
+        menu.style.display = 'none';
+    } else {
+        const btnRect = document.getElementById('mobileDlToggle').getBoundingClientRect();
+        menu.style.left = (btnRect.left - 50) + 'px'; // ボタンの少し左下に表示
+        menu.style.display = 'flex';
+    }
+    if (e) e.stopPropagation();
+}
+// 画面のどこかをタップしたらDLメニューを閉じる
+document.addEventListener('click', function(e) {
+    const menu = document.getElementById('mobileDlMenu');
+    if (menu.style.display === 'flex' && e.target.id !== 'mobileDlToggle') {
+        menu.style.display = 'none';
+    }
+});
+
 function applyFilters() {
     const canvases = document.querySelectorAll('#viewer canvas');
     let s = "";
@@ -282,6 +332,7 @@ document.getElementById("sessionLoader").addEventListener("change", function(e) 
     reader.readAsText(file); e.target.value = "";
 });
 
+// === IIIFの読み込み ===
 async function loadManifest() {
     const url = document.getElementById('manifestUrl').value.trim(); if (!url) return;
     try {
@@ -297,10 +348,30 @@ async function loadManifest() {
     } catch (e) { alert("読み込み失敗"); }
 }
 
+// === ローカル画像の読み込み ===
+document.getElementById("localImageLoader").addEventListener("change", function(e) {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    // 画像URL（Blob）の配列を生成
+    images = files.map(file => URL.createObjectURL(file));
+    notesData = new Array(images.length).fill("");
+    globalNote = ""; globalTextarea.value = ""; currentPage = 0;
+    
+    loadPage(); alert(files.length + "枚のローカル画像を読み込みました！");
+});
+
 function loadPage() {
-    const imgUrl = images[currentPage]; if (imgUrl) viewer.open(imgUrl);
+    const imgUrl = images[currentPage]; if (!imgUrl) return;
+    // ローカル画像(blob)とIIIF画像で読み込み方式を分ける
+    if (imgUrl.startsWith('blob:')) {
+        viewer.open({ type: 'image', url: imgUrl });
+    } else {
+        viewer.open(imgUrl);
+    }
     pageTextarea.value = notesData[currentPage] || ""; updatePageInfo(); autoSave();
 }
+
 function updatePageInfo() {
     const total = images.length || 1; pSelect.innerHTML = "";
     for (let i = 0; i < total; i++) {
@@ -312,9 +383,10 @@ function jumpPage(val) { saveNotes(); currentPage = parseInt(val); loadPage(); }
 function prevPage() { if (currentPage > 0) { saveNotes(); currentPage--; loadPage(); } }
 function nextPage() { if (currentPage < images.length - 1) { saveNotes(); currentPage++; loadPage(); } }
 
+// === ダウンロード処理（ローカル・IIIF両対応） ===
 async function downloadFullImage() {
     const imgUrl = images[currentPage]; if (!imgUrl) return alert("画像がありません。");
-    const downloadUrl = imgUrl.replace(/\/info\.json$/, '/full/full/0/default.jpg');
+    const downloadUrl = imgUrl.startsWith('blob:') ? imgUrl : imgUrl.replace(/\/info\.json$/, '/full/full/0/default.jpg');
     try {
         const response = await fetch(downloadUrl); const blob = await response.blob();
         const url = window.URL.createObjectURL(blob); const a = document.createElement('a');
@@ -336,15 +408,16 @@ function getPageRange() {
 async function downloadMultipleZip() {
     const range = getPageRange(); if (!range) return;
     const { start, end } = range; const btn = document.getElementById('btnMultiZip'); 
-    const originalText = btn.innerText; btn.innerText = "⏳ 処理中"; btn.disabled = true;
+    const originalText = btn.innerText; btn.innerText = "⏳"; btn.disabled = true;
     try {
         const zip = new JSZip(); let successCount = 0;
         for (let i = start; i <= end; i++) {
-            const imgUrl = images[i].replace(/\/info\.json$/, '/full/full/0/default.jpg');
+            const imgUrl = images[i];
+            const dlUrl = imgUrl.startsWith('blob:') ? imgUrl : imgUrl.replace(/\/info\.json$/, '/full/full/0/default.jpg');
             try {
-                const response = await fetch(imgUrl); if (!response.ok) throw new Error("error");
+                const response = await fetch(dlUrl); if (!response.ok) throw new Error("error");
                 zip.file(`page_${String(i + 1).padStart(3, '0')}.jpg`, await response.blob()); successCount++;
-                btn.innerText = `⏳ ${successCount}/${end - start + 1}`;
+                btn.innerText = `⏳ ${successCount}`;
             } catch (err) {}
         }
         if (successCount > 0) {
@@ -358,14 +431,15 @@ async function downloadMultipleZip() {
 async function downloadMultiplePdf() {
     const range = getPageRange(); if (!range) return;
     const { start, end } = range; const btn = document.getElementById('btnMultiPdf'); 
-    const originalText = btn.innerText; btn.innerText = "⏳ 処理中"; btn.disabled = true;
+    const originalText = btn.innerText; btn.innerText = "⏳"; btn.disabled = true;
     try {
         const { jsPDF } = window.jspdf; const pdf = new jsPDF('p', 'pt', 'a4'); 
         let isFirstPage = true; let successCount = 0;
         for (let i = start; i <= end; i++) {
-            const imgUrl = images[i].replace(/\/info\.json$/, '/full/full/0/default.jpg');
+            const imgUrl = images[i];
+            const dlUrl = imgUrl.startsWith('blob:') ? imgUrl : imgUrl.replace(/\/info\.json$/, '/full/full/0/default.jpg');
             try {
-                const response = await fetch(imgUrl); const blob = await response.blob();
+                const response = await fetch(dlUrl); const blob = await response.blob();
                 const objectUrl = URL.createObjectURL(blob); const img = new Image(); img.src = objectUrl;
                 await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
                 const orientation = img.width > img.height ? 'l' : 'p';
@@ -374,7 +448,7 @@ async function downloadMultiplePdf() {
                 const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height;
                 canvas.getContext('2d').drawImage(img, 0, 0);
                 pdf.addImage(canvas.toDataURL('image/jpeg', 0.8), 'JPEG', 0, 0, img.width, img.height);
-                URL.revokeObjectURL(objectUrl); successCount++; btn.innerText = `⏳ ${successCount}/${end - start + 1}`;
+                URL.revokeObjectURL(objectUrl); successCount++; btn.innerText = `⏳ ${successCount}`;
             } catch (err) {}
         }
         if (successCount > 0) pdf.save(`document_${start + 1}-${end + 1}.pdf`);
@@ -415,3 +489,4 @@ document.addEventListener('touchend', function() {
 </script>
 </body>
 </html>
+
