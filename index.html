@@ -397,7 +397,37 @@ document.addEventListener('keydown', function(event) {
         prevPage();
     }
 }, true);
+
+/* --- ガイド線をマウスでドラッグして動かす処理 --- */
+const readingGuide = document.getElementById('readingGuide');
+let isDraggingGuide = false;
+
+// 線をマウスで掴んだとき
+readingGuide.addEventListener('mousedown', function(e) {
+    isDraggingGuide = true;
+    document.body.style.cursor = 'ew-resize';
+    e.preventDefault(); // ビューワーの画像が一緒に動くのを防ぐ
+    e.stopPropagation();
+});
+
+// マウスを動かしているとき
+document.addEventListener('mousemove', function(e) {
+    if (!isDraggingGuide) return;
+    // マウスのX座標（横の位置）を取得して、線の位置を更新
+    let x = e.clientX;
+    readingGuide.style.left = x + 'px';
+});
+
+// マウスを離したとき
+document.addEventListener('mouseup', function() {
+    if (isDraggingGuide) {
+        isDraggingGuide = false;
+        document.body.style.cursor = '';
+    }
+});
+   
 </script>
 </body>
 </html>
+
 
