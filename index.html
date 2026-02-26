@@ -16,10 +16,12 @@
   --control-bg: #f8f9fa; --border-color: #ddd; --viewer-bg: #1a1a1a; --accent-color: #0056b3;
 }
 html, body {
-  margin: 0; padding: 0; height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden;
+  margin: 0; padding: 0; 
+  height: 100vh; height: 100dvh; /* スマホのバー変動に対応する最新の高さ指定 */
+  width: 100vw; display: flex; flex-direction: column; overflow: hidden;
   font-family: "Helvetica Neue", Arial, sans-serif; color: #333; 
-  touch-action: none; /* 全体のタッチアクションを制限 */
-  overscroll-behavior: none; /* スクロール時のバウンス（引っ張り更新）を防止 */
+  touch-action: none; 
+  overscroll-behavior: none; 
 }
 button { cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 4px; padding: 4px 8px; font-size: 12px; transition: 0.2s; touch-action: manipulation; }
 button:hover { background: #e9ecef; }
@@ -222,17 +224,14 @@ button.active-tool { background: #ffeeba; border-color: #ffc107; box-shadow: 0 0
 // ==========================================
 // スマホ特有の「ブラウザ全体のズーム」を完全に防止する処理
 // ==========================================
-// iOS Safariのピンチズーム防止
 document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
 document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
 document.addEventListener('gestureend', function(e) { e.preventDefault(); });
 
-// UI部分でのダブルタップズーム防止
 let lastTouchEnd = 0;
 document.addEventListener('touchend', function(e) {
     const now = (new Date()).getTime();
     if (now - lastTouchEnd <= 300) {
-        // ビューワやキャンバス"以外"のUIをダブルタップした時だけブラウザの拡大を止める
         if (!e.target.closest('#viewer') && !e.target.closest('#drawCanvas')) {
             e.preventDefault();
         }
@@ -255,6 +254,26 @@ const viewer = OpenSeadragon({
   showNavigator: true, navigatorPosition: "BOTTOM_LEFT", navigatorWidth: "80px", navigatorHeight: "80px",
   animationTime: 0.4, gestureSettingsMouse: { clickToZoom: true }, preserveViewport: true, visibilityRatio: 0.5
 });
+
+// === 仮想キーボードによる画面ズレ修正処理 ===
+function resetScrollPosition() {
+    window.scrollTo(0, 0);
+    document.body.scrollTop = 0;
+}
+// テキストエリアからフォーカスが外れた（キーボードが閉じた）時に画面位置をリセット
+globalTextarea.addEventListener('blur', () => setTimeout(resetScrollPosition, 100));
+pageTextarea.addEventListener('blur', () => setTimeout(resetScrollPosition, 100));
+
+// === 各種トグル・UI ===
+function toggleNotes() { 
+    notesPanel.classList.toggle('open'); 
+    // パネルを閉じた時に強制的にキーボードを隠し、画面位置をリセットする
+    if (!notesPanel.classList.contains('open')) {
+        globalTextarea.blur();
+        pageTextarea.blur();
+        setTimeout(resetScrollPosition, 100);
+    }
+}
 
 // === 手書き機能 ===
 const drawCanvas = document.getElementById("drawCanvas");
@@ -395,8 +414,7 @@ function handleResize(clientY) {
     globalNoteSection.style.height = percentage + "%";
 }
 
-// === 各種トグル・UI ===
-function toggleNotes() { notesPanel.classList.toggle('open'); }
+
 function toggleGuide() { document.getElementById('readingGuide').classList.toggle('active'); }
 
 function toggleMobileDlMenu(e) {
@@ -585,3 +603,4 @@ document.addEventListener('touchend', function() { if (isDraggingGuide) { isDrag
 </script>
 </body>
 </html>
+
