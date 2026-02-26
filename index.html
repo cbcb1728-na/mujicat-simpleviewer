@@ -147,10 +147,10 @@ button.active-tool { background: #ffeeba; border-color: #ffc107; box-shadow: 0 0
       <button onclick="prevPage()">▶</button>
     </div>
     <div class="control-group dl-group">
-      <button onclick="downloadFullImage()" class="btn-action dl-pc-btn">⬇️ 1頁</button>
+      <button onclick="downloadFullImage()" class="btn-action dl-pc-btn">🎨 画像DL</button>
       <button onclick="downloadMultipleZip()" class="btn-action dl-pc-btn" id="btnMultiZip">🗂️ ZIP</button>
       <button onclick="downloadMultiplePdf()" class="btn-action dl-pc-btn" id="btnMultiPdf">📄 PDF</button>
-      <button onclick="toggleMobileDlMenu(event)" class="btn-action dl-mobile-btn" id="mobileDlToggle">⬇️ 保存</button>
+      <button onclick="toggleMobileDlMenu(event)" class="btn-action dl-mobile-btn" id="mobileDlToggle">⬇️ DL</button>
     </div>
   </div>
   
@@ -196,7 +196,7 @@ button.active-tool { background: #ffeeba; border-color: #ffc107; box-shadow: 0 0
     <div id="notesHeader">
       <span style="font-weight: bold; font-size: 13px;">📝 メモ</span>
       <div class="note-header-buttons">
-        <button onclick="exportSession()" class="btn-save">💾 保存</button>
+        <button onclick="exportSession()" class="btn-save">💾 作業保存</button>
         <button onclick="document.getElementById('sessionLoader').click()" class="btn-action">📂 読込</button>
         <input type="file" id="sessionLoader" style="display:none" accept=".json">
         <button onclick="toggleNotes()" style="background:#ffe6e6;">✖ 閉じる</button>
@@ -215,9 +215,9 @@ button.active-tool { background: #ffeeba; border-color: #ffc107; box-shadow: 0 0
 </div>
 
 <div id="mobileDlMenu">
-  <button onclick="downloadFullImage(); toggleMobileDlMenu();">⬇️ 1枚保存 (JPG)</button>
-  <button onclick="downloadMultipleZip(); toggleMobileDlMenu();">🗂️ 複数枚 (ZIP)</button>
-  <button onclick="downloadMultiplePdf(); toggleMobileDlMenu();">📄 複数枚 (PDF)</button>
+  <button onclick="downloadFullImage(); toggleMobileDlMenu();">🎨 1枚保存 (JPG)</button>
+  <button onclick="downloadMultipleZip(); toggleMobileDlMenu();">🗂️ 複数 (ZIP)</button>
+  <button onclick="downloadMultiplePdf(); toggleMobileDlMenu();">📄 複数 (PDF)</button>
 </div>
 
 <script>
@@ -603,5 +603,6 @@ document.addEventListener('touchend', function() { if (isDraggingGuide) { isDrag
 </script>
 </body>
 </html>
+
 
 
