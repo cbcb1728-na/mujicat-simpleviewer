@@ -23,6 +23,7 @@ body {
   margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
   font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", sans-serif;
   color: #333;
+  touch-action: none; /* ← ★これを追加（Safari全体のズームを禁止） */
 }
 
 button { cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 4px; padding: 6px 10px; font-size: 13px; transition: 0.2s; touch-action: manipulation; }
@@ -78,8 +79,12 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 #globalNoteSection { height: 50%; display: flex; flex-direction: column; flex-shrink: 0; }
 #pageNoteSection { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .note-title { padding: 6px 10px; font-size: 11px; font-weight: bold; color: #555; background: #fafafa; border-bottom: 1px solid #eee; flex-shrink: 0; }
-.note-textarea { flex: 1; width: 100%; box-sizing: border-box; resize: none; border: none; padding: 10px; font-size: 14px; line-height: 1.6; outline: none; }
-
+.note-textarea { 
+  flex: 1; width: 100%; box-sizing: border-box; resize: none; border: none; 
+  padding: 10px; font-size: 14px; line-height: 1.6; outline: none; 
+  touch-action: pan-y; /* ← ★これを追加（メモ欄の上下スクロールだけは許可） */
+}
+   
 .resizer-h { height: 8px; background: #e0e0e0; cursor: row-resize; flex-shrink: 0; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; }
 
 .btn-primary { background: var(--accent-color); color: #fff; border-color: var(--accent-color); font-weight: bold; }
@@ -412,3 +417,4 @@ document.addEventListener('touchend', function() {
 </script>
 </body>
 </html>
+
