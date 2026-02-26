@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Mujineko-Viewer Tool</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/openseadragon.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -10,7 +10,7 @@
 
 <style>
 /* =========================================
-   基本レイアウト・デザイン
+   基本レイアウト・デザイン（PC用ベース）
 ========================================= */
 :root {
   --control-bg: #f8f9fa;
@@ -25,7 +25,7 @@ body {
   color: #333;
 }
 
-button { cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 4px; padding: 4px 8px; font-size: 12px; transition: 0.2s; }
+button { cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 4px; padding: 6px 10px; font-size: 13px; transition: 0.2s; touch-action: manipulation; }
 button:hover { background: #e9ecef; }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
 
@@ -34,75 +34,88 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   padding: 6px 10px; background: var(--control-bg); border-bottom: 1px solid var(--border-color);
   display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
-.left-controls, .right-controls { display: flex; gap: 8px; align-items: center; }
+.left-controls, .right-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .control-group { display: flex; gap: 4px; align-items: center; border-right: 1px solid #ccc; padding-right: 8px; }
 .control-group:last-child { border-right: none; }
 
-#manifestUrl { font-size: 12px; padding: 4px; width: 160px; border: 1px solid #ccc; border-radius: 4px; }
-#pageSelect { font-size: 12px; padding: 2px; border: 1px solid #ccc; border-radius: 4px; }
+#manifestUrl { font-size: 13px; padding: 6px; width: 180px; border: 1px solid #ccc; border-radius: 4px; }
+#pageSelect { font-size: 13px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; }
 
 /* メインエリア */
 #mainArea { flex: 1; position: relative; display: flex; overflow: hidden; background: var(--viewer-bg); }
 #viewer { flex: 1; height: 100%; width: 100%; }
 
-/* 読書用ガイド線（ドラッグで移動可能に） */
+/* 読書用ガイド線（ここを3pxに戻しました） */
 #readingGuide {
   position: absolute; top: 0; left: 50%; width: 3px; height: 100%;
-  background: rgba(220, 53, 69, 0.8); z-index: 55; /* ボタンより上に */
+  background: rgba(220, 53, 69, 0.8); z-index: 999;
   display: none; box-shadow: 0 0 4px rgba(255,255,255,0.5);
-  cursor: ew-resize; /* マウスを乗せると左右の矢印になる */
+  cursor: ew-resize; touch-action: none;
 }
-/* 線の「当たり判定」を広げてマウスで掴みやすくする */
-#readingGuide::before {
-  content: ""; position: absolute; top: 0; left: -15px; right: -15px; bottom: 0;
-}
+/* 線の当たり判定（掴みやすさ）は広めのまま維持しています */
+#readingGuide::before { content: ""; position: absolute; top: 0; left: -25px; right: -25px; bottom: 0; }
 #readingGuide.active { display: block; }
 
-/* ビューワー上の画像調整ボタン（小型化・左端中央配置） */
+/* ビューワー上の画像調整ボタン（PC時は左端中央） */
 #viewerControls {
   position: absolute; top: 50%; left: 10px; transform: translateY(-50%); z-index: 50;
   display: flex; flex-direction: column; gap: 4px; background: rgba(255, 255, 255, 0.85);
   padding: 4px; border-radius: 6px; backdrop-filter: blur(4px); box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
-#viewerControls button { font-size: 11px; padding: 0; width: 26px; height: 26px; border: 1px solid #aaa; font-weight: bold; }
+#viewerControls button { font-size: 12px; padding: 0; width: 30px; height: 30px; border: 1px solid #aaa; font-weight: bold; }
+.v-divider { height: 1px; width: 100%; background: #aaa; margin: 2px 0; }
 
-/* スライドインするメモパネル */
+/* スライドインするメモパネル（PC時は右から） */
 #notesPanel {
   position: absolute; top: 0; right: -320px; 
   width: 320px; height: 100%; background: #fff; box-shadow: -4px 0 15px rgba(0,0,0,0.2);
-  transition: right 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 60;
+  transition: right 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 60;
   display: flex; flex-direction: column;
 }
 #notesPanel.open { right: 0; }
 
 #notesHeader { padding: 10px; background: #f0f0f0; border-bottom: 1px solid #ddd; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-
-/* メモ分割とリサイザー */
 #globalNoteSection { height: 50%; display: flex; flex-direction: column; flex-shrink: 0; }
 #pageNoteSection { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .note-title { padding: 6px 10px; font-size: 11px; font-weight: bold; color: #555; background: #fafafa; border-bottom: 1px solid #eee; flex-shrink: 0; }
-.note-textarea { flex: 1; width: 100%; box-sizing: border-box; resize: none; border: none; padding: 10px; font-size: 13px; line-height: 1.6; outline: none; }
+.note-textarea { flex: 1; width: 100%; box-sizing: border-box; resize: none; border: none; padding: 10px; font-size: 14px; line-height: 1.6; outline: none; }
 
-/* 上下リサイザー */
-.resizer-h {
-  height: 6px; background: #e0e0e0; cursor: row-resize; flex-shrink: 0;
-  border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; transition: background 0.2s;
-}
-.resizer-h:hover { background: #bbb; }
+.resizer-h { height: 8px; background: #e0e0e0; cursor: row-resize; flex-shrink: 0; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; }
 
-/* 強調ボタン */
 .btn-primary { background: var(--accent-color); color: #fff; border-color: var(--accent-color); font-weight: bold; }
-.btn-primary:hover { background: #004494; color: #fff; }
 .btn-action { font-weight: bold; color: #333; }
 .btn-save { font-weight: bold; color: #006600; background: #e6ffe6; border-color: #b3ffb3; }
+
+/* =========================================
+   📱 スマホ・タブレット用レイアウト
+========================================= */
+@media (max-width: 768px) {
+  #topBar { flex-direction: column; align-items: stretch; padding: 6px; }
+  .left-controls, .right-controls { justify-content: space-between; width: 100%; }
+  .control-group { border-right: none; padding-right: 0; flex: 1; justify-content: center; }
+  #manifestUrl { width: 100%; }
+  
+  #viewerControls {
+    top: auto; bottom: 20px; left: 50%; transform: translateX(-50%);
+    flex-direction: row; border-radius: 20px; padding: 6px 12px; gap: 8px;
+  }
+  #viewerControls button { width: 36px; height: 36px; font-size: 14px; border-radius: 50%; }
+  .v-divider { height: 36px; width: 1px; margin: 0 4px; }
+
+  #notesPanel {
+    top: auto; bottom: -65vh; right: 0; left: 0;
+    width: 100%; height: 60vh; border-radius: 12px 12px 0 0;
+  }
+  #notesPanel.open { bottom: 0; right: 0; }
+}
 </style>
 </head>
 <body>
 
 <div id="topBar">
   <div class="left-controls">
-    <div class="control-group">
-      <input type="text" id="manifestUrl" placeholder="IIIFマニフェストURL">
+    <div class="control-group" style="flex:2;">
+      <input type="text" id="manifestUrl" placeholder="IIIF URL">
       <button onclick="loadManifest()" class="btn-primary">読込</button>
     </div>
     <div class="control-group">
@@ -110,21 +123,21 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
       <select id="pageSelect" onchange="jumpPage(this.value)"></select>
       <button onclick="prevPage()">▶</button>
     </div>
-    <div class="control-group">
-      <button onclick="downloadFullImage()" class="btn-action" title="現在のページの高画質画像をJPG保存">⬇️ 1頁</button>
-      <button onclick="downloadMultipleZip()" class="btn-action" id="btnMultiZip" title="複数ページをZIPで一括保存">🗂️ 複数ZIP</button>
-      <button onclick="downloadMultiplePdf()" class="btn-action" id="btnMultiPdf" title="複数ページを1つのPDFにまとめて保存">📄 複数PDF</button>
-    </div>
   </div>
   
-  <div class="right-controls">
+  <div class="right-controls" style="margin-top:4px; padding-top:4px; border-top:1px dashed #ccc;">
     <div class="control-group">
-      <button onclick="exportSession()" class="btn-save">💾 メモ保存</button>
+      <button onclick="downloadFullImage()" class="btn-action">⬇️ 1頁</button>
+      <button onclick="downloadMultipleZip()" class="btn-action" id="btnMultiZip">🗂️ ZIP</button>
+      <button onclick="downloadMultiplePdf()" class="btn-action" id="btnMultiPdf">📄 PDF</button>
+    </div>
+    <div class="control-group">
+      <button onclick="exportSession()" class="btn-save">💾 保存</button>
       <button onclick="document.getElementById('sessionLoader').click()" class="btn-action">📂 読込</button>
       <input type="file" id="sessionLoader" style="display:none" accept=".json">
     </div>
-    <div class="control-group" style="border:none;">
-      <button onclick="toggleNotes()" class="btn-action">📝 メモ開閉</button>
+    <div class="control-group">
+      <button onclick="toggleNotes()" class="btn-action" style="background:#fff3cd;">📝 メモ</button>
     </div>
   </div>
 </div>
@@ -133,12 +146,12 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   <div id="readingGuide"></div>
 
   <div id="viewerControls">
-    <button onclick="toggleGuide()" title="読書用ガイド線の表示/非表示">線</button>
-    <div style="height:1px; background:#aaa; margin:2px 0;"></div>
+    <button onclick="toggleGuide()" title="読書用ガイド線">線</button>
+    <div class="v-divider"></div>
     <button onclick="toggleFilter('contrast')" title="コントラスト強調">濃</button>
     <button onclick="toggleFilter('invert')" title="白黒反転">転</button>
     <button onclick="resetFilters()">解</button>
-    <div style="height:1px; background:#aaa; margin:2px 0;"></div>
+    <div class="v-divider"></div>
     <button onclick="rotate(-90)">↶</button>
     <button onclick="rotate(90)">↷</button>
   </div>
@@ -148,19 +161,16 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   <div id="notesPanel">
     <div id="notesHeader">
       <span>📝 メモパネル</span>
-      <button onclick="toggleNotes()" style="padding:2px 6px; font-size:10px;">✖ 閉じる</button>
+      <button onclick="toggleNotes()" style="padding:4px 8px;">✖ 閉じる</button>
     </div>
-    
     <div id="globalNoteSection">
       <div class="note-title">全体メモ（全ページ共通）</div>
-      <textarea id="globalNotesTextarea" class="note-textarea" placeholder="作品全体に関するメモなどを自由に入力できます。"></textarea>
+      <textarea id="globalNotesTextarea" class="note-textarea" placeholder="作品全体に関するメモ"></textarea>
     </div>
-    
     <div id="noteResizer" class="resizer-h"></div>
-    
     <div id="pageNoteSection">
       <div class="note-title">各頁メモ（現在のページ）</div>
-      <textarea id="pageNotesTextarea" class="note-textarea" placeholder="表示中のページに関するメモを入力できます。"></textarea>
+      <textarea id="pageNotesTextarea" class="note-textarea" placeholder="表示中のページに関するメモ"></textarea>
     </div>
   </div>
 </div>
@@ -174,7 +184,6 @@ const globalTextarea = document.getElementById("globalNotesTextarea");
 const pageTextarea = document.getElementById("pageNotesTextarea");
 const notesPanel = document.getElementById("notesPanel");
 
-// ナビゲーター（サムネイル）を80pxに小型化
 const viewer = OpenSeadragon({
   id: "viewer", prefixUrl: "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/images/",
   showNavigator: true, navigatorPosition: "BOTTOM_LEFT", navigatorWidth: "80px", navigatorHeight: "80px",
@@ -188,22 +197,28 @@ const noteResizer = document.getElementById("noteResizer");
 const globalNoteSection = document.getElementById("globalNoteSection");
 const notesHeader = document.getElementById("notesHeader");
 
+// PC用マウスリサイズ
 noteResizer.addEventListener("mousedown", (e) => {
     isResizingNote = true; document.body.style.cursor = 'row-resize'; e.preventDefault();
 });
-document.addEventListener("mousemove", (e) => {
+document.addEventListener("mousemove", (e) => handleResize(e.clientY));
+document.addEventListener("mouseup", () => { if(isResizingNote) { isResizingNote = false; document.body.style.cursor = ''; } });
+
+// スマホ用タッチリサイズ
+noteResizer.addEventListener("touchstart", (e) => { isResizingNote = true; e.preventDefault(); }, {passive: false});
+document.addEventListener("touchmove", (e) => { if(isResizingNote) handleResize(e.touches[0].clientY); }, {passive: false});
+document.addEventListener("touchend", () => { isResizingNote = false; });
+
+function handleResize(clientY) {
     if (!isResizingNote) return;
     const panelRect = notesPanel.getBoundingClientRect();
     const headerHeight = notesHeader.offsetHeight;
-    let y = e.clientY - panelRect.top - headerHeight;
+    let y = clientY - panelRect.top - headerHeight;
     const availableHeight = panelRect.height - headerHeight - noteResizer.offsetHeight;
     let percentage = (y / availableHeight) * 100;
     if (percentage < 10) percentage = 10; if (percentage > 90) percentage = 90;
     globalNoteSection.style.height = percentage + "%";
-});
-document.addEventListener("mouseup", () => {
-    if (isResizingNote) { isResizingNote = false; document.body.style.cursor = ''; }
-});
+}
 
 function toggleNotes() { notesPanel.classList.toggle('open'); }
 function toggleGuide() { document.getElementById('readingGuide').classList.toggle('active'); }
@@ -290,7 +305,6 @@ function jumpPage(val) { saveNotes(); currentPage = parseInt(val); loadPage(); }
 function prevPage() { if (currentPage > 0) { saveNotes(); currentPage--; loadPage(); } }
 function nextPage() { if (currentPage < images.length - 1) { saveNotes(); currentPage++; loadPage(); } }
 
-/* --- 1ページ高画質ダウンロード --- */
 async function downloadFullImage() {
     const imgUrl = images[currentPage]; if (!imgUrl) return alert("画像がありません。");
     const downloadUrl = imgUrl.replace(/\/info\.json$/, '/full/full/0/default.jpg');
@@ -303,131 +317,98 @@ async function downloadFullImage() {
 }
 
 function getPageRange() {
-    if (images.length === 0) { alert("画像がありません。"); return null; }
-    const input = prompt(`保存するページの範囲をハイフンで入力してください。\n(例: 1-5)\n※最大ページ数: ${images.length}`);
+    if (images.length === 0) return null;
+    const input = prompt(`保存範囲 (例: 1-5)\n※最大: ${images.length}`);
     if (!input) return null;
-    const parts = input.split('-'); if (parts.length !== 2) { alert("1-5 のように入力してください。"); return null; }
+    const parts = input.split('-'); if (parts.length !== 2) return null;
     const start = parseInt(parts[0]) - 1, end = parseInt(parts[1]) - 1;
-    if (isNaN(start) || isNaN(end) || start < 0 || end >= images.length || start > end) { alert("正しいページ範囲を指定してください。"); return null; }
+    if (isNaN(start) || isNaN(end) || start < 0 || end >= images.length || start > end) return null;
     return { start, end };
 }
 
-/* --- 複数ページ一括ZIP保存機能 --- */
 async function downloadMultipleZip() {
     const range = getPageRange(); if (!range) return;
-    const { start, end } = range;
-    const btn = document.getElementById('btnMultiZip'); 
-    const originalText = btn.innerText; btn.innerText = "⏳ ZIP作成中..."; btn.disabled = true;
-
+    const { start, end } = range; const btn = document.getElementById('btnMultiZip'); 
+    const originalText = btn.innerText; btn.innerText = "⏳ 処理中"; btn.disabled = true;
     try {
         const zip = new JSZip(); let successCount = 0;
         for (let i = start; i <= end; i++) {
             const imgUrl = images[i].replace(/\/info\.json$/, '/full/full/0/default.jpg');
             try {
-                const response = await fetch(imgUrl); if (!response.ok) throw new Error("Network error");
-                const blob = await response.blob();
-                zip.file(`page_${String(i + 1).padStart(3, '0')}.jpg`, blob); successCount++;
-                btn.innerText = `⏳ ZIP作成中 (${successCount}/${end - start + 1})`;
-            } catch (err) { console.warn(`頁 ${i + 1} 失敗`); }
+                const response = await fetch(imgUrl); if (!response.ok) throw new Error("error");
+                zip.file(`page_${String(i + 1).padStart(3, '0')}.jpg`, await response.blob()); successCount++;
+                btn.innerText = `⏳ ${successCount}/${end - start + 1}`;
+            } catch (err) {}
         }
-        if (successCount === 0) { alert("取得失敗。提供元のセキュリティ設定により一括保存が許可されていない可能性があります。"); } 
-        else {
+        if (successCount > 0) {
             const content = await zip.generateAsync({ type: "blob" });
             const url = window.URL.createObjectURL(content); const a = document.createElement('a');
-            a.href = url; a.download = `images_${start + 1}-${end + 1}.zip`;
-            document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); document.body.removeChild(a);
+            a.href = url; a.download = `images_${start + 1}-${end + 1}.zip`; a.click(); window.URL.revokeObjectURL(url);
         }
     } finally { btn.innerText = originalText; btn.disabled = false; }
 }
 
-/* --- 複数ページ一括PDF保存機能 --- */
 async function downloadMultiplePdf() {
     const range = getPageRange(); if (!range) return;
-    const { start, end } = range;
-    const btn = document.getElementById('btnMultiPdf'); 
-    const originalText = btn.innerText; btn.innerText = "⏳ PDF作成中..."; btn.disabled = true;
-
+    const { start, end } = range; const btn = document.getElementById('btnMultiPdf'); 
+    const originalText = btn.innerText; btn.innerText = "⏳ 処理中"; btn.disabled = true;
     try {
         const { jsPDF } = window.jspdf; const pdf = new jsPDF('p', 'pt', 'a4'); 
         let isFirstPage = true; let successCount = 0;
-
         for (let i = start; i <= end; i++) {
             const imgUrl = images[i].replace(/\/info\.json$/, '/full/full/0/default.jpg');
             try {
-                const response = await fetch(imgUrl); if (!response.ok) throw new Error("Network error");
-                const blob = await response.blob(); const objectUrl = URL.createObjectURL(blob);
-                const img = new Image(); img.src = objectUrl;
+                const response = await fetch(imgUrl); const blob = await response.blob();
+                const objectUrl = URL.createObjectURL(blob); const img = new Image(); img.src = objectUrl;
                 await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
-
-                const pdfWidth = img.width; const pdfHeight = img.height;
-                const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
-
-                if (isFirstPage) { pdf.deletePage(1); pdf.addPage([pdfWidth, pdfHeight], orientation); isFirstPage = false; } 
-                else { pdf.addPage([pdfWidth, pdfHeight], orientation); }
-
+                const orientation = img.width > img.height ? 'l' : 'p';
+                if (isFirstPage) { pdf.deletePage(1); pdf.addPage([img.width, img.height], orientation); isFirstPage = false; } 
+                else { pdf.addPage([img.width, img.height], orientation); }
                 const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height;
-                const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.8); 
-
-                pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-                URL.revokeObjectURL(objectUrl); successCount++;
-                btn.innerText = `⏳ PDF作成中 (${successCount}/${end - start + 1})`;
-            } catch (err) { console.warn(`頁 ${i + 1} 失敗`, err); }
+                canvas.getContext('2d').drawImage(img, 0, 0);
+                pdf.addImage(canvas.toDataURL('image/jpeg', 0.8), 'JPEG', 0, 0, img.width, img.height);
+                URL.revokeObjectURL(objectUrl); successCount++; btn.innerText = `⏳ ${successCount}/${end - start + 1}`;
+            } catch (err) {}
         }
-        if (successCount === 0) { alert("画像の取得に失敗しました。"); } 
-        else {
-            pdf.save(`document_${start + 1}-${end + 1}.pdf`);
-            if (successCount < (end - start + 1)) alert(`一部の画像が取得できませんでしたが、取得できた ${successCount} ページをPDF化しました。`);
-        }
+        if (successCount > 0) pdf.save(`document_${start + 1}-${end + 1}.pdf`);
     } finally { btn.innerText = originalText; btn.disabled = false; }
 }
 
-/* --- キーボードの矢印キーでページめくり（右開き用） --- */
+/* --- キーボードの矢印キーでページめくり --- */
 document.addEventListener('keydown', function(event) {
     const activeTag = event.target.tagName.toLowerCase();
     if (activeTag === 'input' || activeTag === 'textarea') return;
-    
-    if (event.key === 'ArrowLeft') {
-        event.preventDefault();
-        event.stopPropagation();
-        nextPage();
-    } else if (event.key === 'ArrowRight') {
-        event.preventDefault();
-        event.stopPropagation();
-        prevPage();
-    }
+    if (event.key === 'ArrowLeft') { event.preventDefault(); event.stopPropagation(); nextPage(); } 
+    else if (event.key === 'ArrowRight') { event.preventDefault(); event.stopPropagation(); prevPage(); }
 }, true);
 
-/* --- ガイド線をマウスでドラッグして動かす処理 --- */
+/* --- ガイド線をマウス・タッチでドラッグする処理 --- */
 const readingGuide = document.getElementById('readingGuide');
 let isDraggingGuide = false;
 
-// 線をマウスで掴んだとき
+// PC（マウス）
 readingGuide.addEventListener('mousedown', function(e) {
-    isDraggingGuide = true;
-    document.body.style.cursor = 'ew-resize';
-    e.preventDefault(); // ビューワーの画像が一緒に動くのを防ぐ
-    e.stopPropagation();
+    isDraggingGuide = true; document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none'; e.preventDefault(); e.stopPropagation();
 });
-
-// マウスを動かしているとき
 document.addEventListener('mousemove', function(e) {
-    if (!isDraggingGuide) return;
-    // マウスのX座標（横の位置）を取得して、線の位置を更新
-    let x = e.clientX;
-    readingGuide.style.left = x + 'px';
+    if (isDraggingGuide) readingGuide.style.left = e.clientX + 'px';
+});
+document.addEventListener('mouseup', function() {
+    if (isDraggingGuide) { isDraggingGuide = false; document.body.style.cursor = ''; document.body.style.userSelect = ''; }
 });
 
-// マウスを離したとき
-document.addEventListener('mouseup', function() {
-    if (isDraggingGuide) {
-        isDraggingGuide = false;
-        document.body.style.cursor = '';
-    }
+// スマホ・タブレット（タッチ）
+readingGuide.addEventListener('touchstart', function(e) {
+    isDraggingGuide = true; document.body.style.userSelect = 'none';
+    e.preventDefault(); e.stopPropagation();
+}, {passive: false});
+document.addEventListener('touchmove', function(e) {
+    if (isDraggingGuide) readingGuide.style.left = e.touches[0].clientX + 'px';
+}, {passive: false});
+document.addEventListener('touchend', function() {
+    if (isDraggingGuide) { isDraggingGuide = false; document.body.style.userSelect = ''; }
 });
-   
 </script>
 </body>
 </html>
-
-
