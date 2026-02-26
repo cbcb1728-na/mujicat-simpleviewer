@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -45,13 +45,21 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 #mainArea { flex: 1; position: relative; display: flex; overflow: hidden; background: var(--viewer-bg); }
 #viewer { flex: 1; height: 100%; width: 100%; }
 
-/* ビューワー上の画像調整ボタン */
-#viewerControls {
-  position: absolute; top: 15px; left: 15px; z-index: 50;
-  display: flex; flex-direction: column; gap: 5px; background: rgba(255, 255, 255, 0.85);
-  padding: 6px; border-radius: 6px; backdrop-filter: blur(4px); box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+/* 読書用ガイド線（中央固定） */
+#readingGuide {
+  position: absolute; top: 0; left: 50%; width: 2px; height: 100%;
+  background: rgba(220, 53, 69, 0.6); z-index: 45; pointer-events: none;
+  display: none; box-shadow: 0 0 4px rgba(255,255,255,0.5);
 }
-#viewerControls button { font-size: 12px; padding: 0; width: 30px; height: 30px; border: 1px solid #aaa; font-weight: bold; }
+#readingGuide.active { display: block; }
+
+/* ビューワー上の画像調整ボタン（小型化・左端中央配置） */
+#viewerControls {
+  position: absolute; top: 50%; left: 10px; transform: translateY(-50%); z-index: 50;
+  display: flex; flex-direction: column; gap: 4px; background: rgba(255, 255, 255, 0.85);
+  padding: 4px; border-radius: 6px; backdrop-filter: blur(4px); box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+#viewerControls button { font-size: 11px; padding: 0; width: 26px; height: 26px; border: 1px solid #aaa; font-weight: bold; }
 
 /* スライドインするメモパネル */
 #notesPanel {
@@ -117,7 +125,11 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 </div>
 
 <div id="mainArea">
+  <div id="readingGuide"></div>
+
   <div id="viewerControls">
+    <button onclick="toggleGuide()" title="読書用ガイド線の表示/非表示">線</button>
+    <div style="height:1px; background:#aaa; margin:2px 0;"></div>
     <button onclick="toggleFilter('contrast')" title="コントラスト強調">濃</button>
     <button onclick="toggleFilter('invert')" title="白黒反転">転</button>
     <button onclick="resetFilters()">解</button>
@@ -157,9 +169,10 @@ const globalTextarea = document.getElementById("globalNotesTextarea");
 const pageTextarea = document.getElementById("pageNotesTextarea");
 const notesPanel = document.getElementById("notesPanel");
 
+// ナビゲーター（サムネイル）を80pxに小型化
 const viewer = OpenSeadragon({
   id: "viewer", prefixUrl: "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/images/",
-  showNavigator: true, navigatorPosition: "BOTTOM_LEFT", navigatorWidth: "120px", navigatorHeight: "120px",
+  showNavigator: true, navigatorPosition: "BOTTOM_LEFT", navigatorWidth: "80px", navigatorHeight: "80px",
   animationTime: 0.4, gestureSettingsMouse: { clickToZoom: true },
   preserveViewport: true, visibilityRatio: 0.5
 });
@@ -188,6 +201,8 @@ document.addEventListener("mouseup", () => {
 });
 
 function toggleNotes() { notesPanel.classList.toggle('open'); }
+function toggleGuide() { document.getElementById('readingGuide').classList.toggle('active'); }
+
 function applyFilters() {
     const canvases = document.querySelectorAll('#viewer canvas');
     let s = "";
@@ -282,7 +297,6 @@ async function downloadFullImage() {
     } catch (e) { window.open(downloadUrl, '_blank'); }
 }
 
-/* --- ヘルパー関数: ページ範囲の入力とバリデーション --- */
 function getPageRange() {
     if (images.length === 0) { alert("画像がありません。"); return null; }
     const input = prompt(`保存するページの範囲をハイフンで入力してください。\n(例: 1-5)\n※最大ページ数: ${images.length}`);
@@ -297,10 +311,8 @@ function getPageRange() {
 async function downloadMultipleZip() {
     const range = getPageRange(); if (!range) return;
     const { start, end } = range;
-    
     const btn = document.getElementById('btnMultiZip'); 
-    const originalText = btn.innerText;
-    btn.innerText = "⏳ ZIP作成中..."; btn.disabled = true;
+    const originalText = btn.innerText; btn.innerText = "⏳ ZIP作成中..."; btn.disabled = true;
 
     try {
         const zip = new JSZip(); let successCount = 0;
@@ -327,87 +339,59 @@ async function downloadMultipleZip() {
 async function downloadMultiplePdf() {
     const range = getPageRange(); if (!range) return;
     const { start, end } = range;
-
     const btn = document.getElementById('btnMultiPdf'); 
-    const originalText = btn.innerText;
-    btn.innerText = "⏳ PDF作成中..."; btn.disabled = true;
+    const originalText = btn.innerText; btn.innerText = "⏳ PDF作成中..."; btn.disabled = true;
 
     try {
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'pt', 'a4'); 
-        let isFirstPage = true;
-        let successCount = 0;
+        const { jsPDF } = window.jspdf; const pdf = new jsPDF('p', 'pt', 'a4'); 
+        let isFirstPage = true; let successCount = 0;
 
         for (let i = start; i <= end; i++) {
             const imgUrl = images[i].replace(/\/info\.json$/, '/full/full/0/default.jpg');
             try {
-                const response = await fetch(imgUrl);
-                if (!response.ok) throw new Error("Network error");
-                const blob = await response.blob();
-                const objectUrl = URL.createObjectURL(blob);
-                
-                const img = new Image();
-                img.src = objectUrl;
-                await new Promise((resolve, reject) => {
-                    img.onload = resolve; img.onerror = reject;
-                });
+                const response = await fetch(imgUrl); if (!response.ok) throw new Error("Network error");
+                const blob = await response.blob(); const objectUrl = URL.createObjectURL(blob);
+                const img = new Image(); img.src = objectUrl;
+                await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
 
                 const pdfWidth = img.width; const pdfHeight = img.height;
                 const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
 
-                if (isFirstPage) {
-                    pdf.deletePage(1);
-                    pdf.addPage([pdfWidth, pdfHeight], orientation);
-                    isFirstPage = false;
-                } else {
-                    pdf.addPage([pdfWidth, pdfHeight], orientation);
-                }
+                if (isFirstPage) { pdf.deletePage(1); pdf.addPage([pdfWidth, pdfHeight], orientation); isFirstPage = false; } 
+                else { pdf.addPage([pdfWidth, pdfHeight], orientation); }
 
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width; canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
+                const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height;
+                const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.8); 
 
                 pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-                URL.revokeObjectURL(objectUrl);
-                successCount++;
+                URL.revokeObjectURL(objectUrl); successCount++;
                 btn.innerText = `⏳ PDF作成中 (${successCount}/${end - start + 1})`;
-                
             } catch (err) { console.warn(`頁 ${i + 1} 失敗`, err); }
         }
-
-        if (successCount === 0) {
-            alert("画像の取得に失敗しました。");
-        } else {
+        if (successCount === 0) { alert("画像の取得に失敗しました。"); } 
+        else {
             pdf.save(`document_${start + 1}-${end + 1}.pdf`);
-            if (successCount < (end - start + 1)) {
-                alert(`一部の画像が取得できませんでしたが、取得できた ${successCount} ページをPDF化しました。`);
-            }
+            if (successCount < (end - start + 1)) alert(`一部の画像が取得できませんでしたが、取得できた ${successCount} ページをPDF化しました。`);
         }
     } finally { btn.innerText = originalText; btn.disabled = false; }
 }
 
 /* --- キーボードの矢印キーでページめくり（右開き用） --- */
 document.addEventListener('keydown', function(event) {
-    // 入力欄（マニフェストURLやメモ欄）にカーソルがある時は、ページ送りを無効にする
     const activeTag = event.target.tagName.toLowerCase();
-    if (activeTag === 'input' || activeTag === 'textarea') {
-        return;
-    }
+    if (activeTag === 'input' || activeTag === 'textarea') return;
     
-    // 左矢印(←)で「次へ」、右矢印(→)で「前へ」
     if (event.key === 'ArrowLeft') {
-        event.preventDefault();     // ブラウザやビューワーの本来の動き（スクロール等）をキャンセル
-        event.stopPropagation();    // ビューワーにキー操作が伝わるのを防ぐ
+        event.preventDefault();
+        event.stopPropagation();
         nextPage();
     } else if (event.key === 'ArrowRight') {
         event.preventDefault();
         event.stopPropagation();
         prevPage();
     }
-}, true); // ← ここに "true" を付けることで、ビューワーより先にこのキー操作を最優先で処理させます
-
+}, true);
 </script>
 </body>
 </html>
